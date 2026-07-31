@@ -1,0 +1,4 @@
+ALTER TABLE `match`
+    ADD COLUMN room_code VARCHAR(6) NULL UNIQUE,
+    ADD COLUMN host_name VARCHAR(64) NULL,
+    ADD COLUMN guest_name VARCHAR(64) NULL;
