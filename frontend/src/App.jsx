@@ -1790,6 +1790,7 @@ function App() {
               blackArmy={blackArmy}
               rollPiece={rollPiece}
               autoRollFullArmy={autoRollFullArmy}
+              REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}
@@ -1808,6 +1809,7 @@ function App() {
               pendingHomeAttack={pendingHomeAttack}
               isDraftComplete={isDraftComplete}
               readOnly={true}
+              bannerOnBottom={true}
             />
           </section>
 
@@ -1847,6 +1849,7 @@ function App() {
               blackArmy={blackArmy}
               rollPiece={rollPiece}
               autoRollFullArmy={autoRollFullArmy}
+              REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}
@@ -1898,6 +1901,7 @@ function App() {
               blackArmy={blackArmy}
               rollPiece={rollPiece}
               autoRollFullArmy={autoRollFullArmy}
+              REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}
@@ -1949,6 +1953,7 @@ function App() {
               blackArmy={blackArmy}
               rollPiece={rollPiece}
               autoRollFullArmy={autoRollFullArmy}
+              REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}

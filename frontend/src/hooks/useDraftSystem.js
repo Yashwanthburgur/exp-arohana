@@ -57,24 +57,54 @@ function useDraftSystem({
   // ╔══════════════════════════════╗
   // ✅ DRAFT ROLL
   // ╚══════════════════════════════╝
-  function rollPiece() {
+  // Picks one random piece for a side: random tier → random piece from it.
+  function pickRandomPiece() {
+    const activePools = getActiveTierPools(variant, customPieces);
+    const tierKeys = Object.keys(activePools);
+
+    if (tierKeys.length === 0) return null;
+
+    const pickedTier = tierKeys[Math.floor(Math.random() * tierKeys.length)];
+    const pool = activePools[pickedTier];
+
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // Rolls ONE slot. When a color is given, only THAT side gets the roll
+  // (each player's button rolls only their own army). Without a color it
+  // keeps the legacy behavior of rolling both sides from one shared tier.
+  function rollPiece(color) {
+    if (color === "WHITE") {
+      setWhiteArmy((prev) => {
+        if (prev.length >= REQUIRED_DRAFT_ROLLS) return prev;
+        return [...prev, pickRandomPiece()];
+      });
+      return;
+    }
+
+    if (color === "BLACK") {
+      setBlackArmy((prev) => {
+        if (prev.length >= REQUIRED_DRAFT_ROLLS) return prev;
+        return [...prev, pickRandomPiece()];
+      });
+      return;
+    }
+
+    // Legacy: no color → shared tier, one piece for each side.
     const bothComplete =
       whiteArmy.length >= REQUIRED_DRAFT_ROLLS &&
       blackArmy.length >= REQUIRED_DRAFT_ROLLS;
 
     if (bothComplete) return;
 
-    // Get tier pools filtered for current variant
     const activePools = getActiveTierPools(variant, customPieces);
     const tierKeys = Object.keys(activePools);
 
     if (tierKeys.length === 0) return;
 
-    // 1. Shared tier selection
     const pickedTier = tierKeys[Math.floor(Math.random() * tierKeys.length)];
     const pool = activePools[pickedTier];
 
-    // 2. Independent piece selection per side
     const whitePick = pool[Math.floor(Math.random() * pool.length)];
     const blackPick = pool[Math.floor(Math.random() * pool.length)];
 
@@ -90,32 +120,40 @@ function useDraftSystem({
   }
 
   // ╔══════════════════════════════╗
-  // ✅ AUTO-ROLL FULL ARMY (ONE CLICK)
+  // ✅ DEPLOY FULL ARMY (ONE CLICK)
   // ╚══════════════════════════════╝
-  // As soon as the match starts, the system rolls the dice first:
-  // it selects a tier 8 times (e.g. S,S,A,D,B,C,C,D) then, for each side,
-  // randomly picks a piece of that tier for that slot — instantly filling
-  // the entire 8-slot army for BOTH players in one click.
-  function autoRollFullArmy() {
-    const activePools = getActiveTierPools(variant, customPieces);
-    const tierKeys = Object.keys(activePools);
+  // Fills the entire 8-slot army in one click. When a color is given,
+  // ONLY that side's army is deployed (each player deploys their own).
+  function autoRollFullArmy(color) {
+    if (color === "WHITE" || color === "BLACK") {
+      const rolls = [];
+      for (let i = 0; i < REQUIRED_DRAFT_ROLLS; i++) {
+        rolls.push(pickRandomPiece());
+      }
 
-    if (tierKeys.length === 0) return;
+      if (color === "WHITE") {
+        setWhiteArmy(rolls);
+      } else {
+        setBlackArmy(rolls);
+      }
+      return;
+    }
 
+    // No color → deploy both armies (legacy / auto path).
     const whiteRolls = [];
     const blackRolls = [];
 
     for (let i = 0; i < REQUIRED_DRAFT_ROLLS; i++) {
-      // 1. Shared tier selection for this slot (same tier both sides)
+      const activePools = getActiveTierPools(variant, customPieces);
+      const tierKeys = Object.keys(activePools);
+
+      if (tierKeys.length === 0) break;
+
       const pickedTier = tierKeys[Math.floor(Math.random() * tierKeys.length)];
       const pool = activePools[pickedTier];
 
-      // 2. Independent piece selection per side from that tier
-      const whitePick = pool[Math.floor(Math.random() * pool.length)];
-      const blackPick = pool[Math.floor(Math.random() * pool.length)];
-
-      whiteRolls.push(whitePick);
-      blackRolls.push(blackPick);
+      whiteRolls.push(pool[Math.floor(Math.random() * pool.length)]);
+      blackRolls.push(pool[Math.floor(Math.random() * pool.length)]);
     }
 
     setWhiteArmy(whiteRolls);

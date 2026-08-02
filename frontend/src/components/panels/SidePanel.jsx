@@ -85,6 +85,11 @@ function SidePanel({
   moveDown,
   getQueueLabel,
   calculateMaterialTotal,
+  REQUIRED_DRAFT_ROLLS = 8,
+  // True when this panel sits ABOVE the board (its board-facing edge is
+  // its bottom) → banner anchors at -bottom. False for the panel BELOW
+  // the board → banner anchors at -top.
+  bannerOnBottom = false,
   timerEnabled,
   activeTimerColor,
   timerState,
@@ -126,11 +131,18 @@ function SidePanel({
 
       {isGameStarted ? (
         <div className="flex w-full flex-col">
-          {/* Status banner — absolute overlay floating above the strip
-              (in the gap between panel and board). High z-index so it
-              always renders on top; never distorts the layout. */}
+          {/* Status banner — absolute overlay anchored at the panel's
+              board-facing edge (below the bench, above the board).
+              No layout shift, no page distortion — floats over the gap
+              for BOTH black (top) and white (bottom). The top panel's
+              board-facing edge is its bottom; the bottom panel's is its
+              top — controlled via the bannerOnBottom prop. */}
           {isActing && (
-            <div className="pointer-events-none absolute left-0 right-0 -top-4 z-30 flex justify-center">
+            <div
+              className={`pointer-events-none absolute left-0 right-0 z-30 flex justify-center ${
+                bannerOnBottom ? "-bottom-4" : "-top-4"
+              }`}
+            >
               <div className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-slate-950/95 border border-white/10 px-2.5 py-0.5 shadow-lg">
                 {seizureAction && seizureAction.controller === color && (
                   <span className="text-[10px] font-black uppercase tracking-wide text-red-400">
@@ -255,15 +267,19 @@ function SidePanel({
           </div>
 
           <button
-            onClick={autoRollFullArmy || rollPiece}
-            disabled={readOnly || isReady || isDraftComplete()}
+            onClick={() =>
+              autoRollFullArmy ? autoRollFullArmy(color) : rollPiece(color)
+            }
+            disabled={
+              readOnly || isReady || army.length >= REQUIRED_DRAFT_ROLLS
+            }
             className={`rounded-lg p-2 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50 ${
               isWhitePanel
                 ? "bg-cyan-500 text-black hover:bg-cyan-400"
                 : "bg-red-500 text-white hover:bg-red-400"
             }`}
           >
-            {autoRollFullArmy ? "Auto-Roll Army" : "Roll Both"}
+            {army.length >= REQUIRED_DRAFT_ROLLS ? "ARMY READY" : "DEPLOY"}
           </button>
 
           <div className="min-h-0 flex-1 rounded-xl bg-slate-800 p-2 shadow">
