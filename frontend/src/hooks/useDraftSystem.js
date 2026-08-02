@@ -90,6 +90,39 @@ function useDraftSystem({
   }
 
   // ╔══════════════════════════════╗
+  // ✅ AUTO-ROLL FULL ARMY (ONE CLICK)
+  // ╚══════════════════════════════╝
+  // As soon as the match starts, the system rolls the dice first:
+  // it selects a tier 8 times (e.g. S,S,A,D,B,C,C,D) then, for each side,
+  // randomly picks a piece of that tier for that slot — instantly filling
+  // the entire 8-slot army for BOTH players in one click.
+  function autoRollFullArmy() {
+    const activePools = getActiveTierPools(variant, customPieces);
+    const tierKeys = Object.keys(activePools);
+
+    if (tierKeys.length === 0) return;
+
+    const whiteRolls = [];
+    const blackRolls = [];
+
+    for (let i = 0; i < REQUIRED_DRAFT_ROLLS; i++) {
+      // 1. Shared tier selection for this slot (same tier both sides)
+      const pickedTier = tierKeys[Math.floor(Math.random() * tierKeys.length)];
+      const pool = activePools[pickedTier];
+
+      // 2. Independent piece selection per side from that tier
+      const whitePick = pool[Math.floor(Math.random() * pool.length)];
+      const blackPick = pool[Math.floor(Math.random() * pool.length)];
+
+      whiteRolls.push(whitePick);
+      blackRolls.push(blackPick);
+    }
+
+    setWhiteArmy(whiteRolls);
+    setBlackArmy(blackRolls);
+  }
+
+  // ╔══════════════════════════════╗
   // ✅ READY VALIDATION
   // ╚══════════════════════════════╝
   function canSetReady(color) {
@@ -199,6 +232,7 @@ function useDraftSystem({
     setBlackReady: setBlackReadyFlag,
 
     rollPiece,
+    autoRollFullArmy,
     isDraftComplete,
     moveUp,
     moveDown,

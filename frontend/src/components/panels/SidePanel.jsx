@@ -80,6 +80,7 @@ function SidePanel({
   whiteArmy,
   blackArmy,
   rollPiece,
+  autoRollFullArmy,
   moveUp,
   moveDown,
   getQueueLabel,
@@ -113,7 +114,7 @@ function SidePanel({
     <div
       className={
         isGameStarted
-          ? "w-full rounded-xl bg-slate-950/50 px-2 py-1 shadow border border-white/[0.06]"
+          ? "relative w-full rounded-xl bg-slate-950/50 px-2 py-1 shadow border border-white/[0.06]"
           : "flex max-h-[96vh] w-full flex-col gap-2 overflow-hidden rounded-2xl bg-slate-950/40 p-2"
       }
     >
@@ -125,11 +126,12 @@ function SidePanel({
 
       {isGameStarted ? (
         <div className="flex w-full flex-col">
-          {/* Status banner — INLINE row above the strip so it always
-              renders above the panel and is never hidden behind the board */}
+          {/* Status banner — absolute overlay floating above the strip
+              (in the gap between panel and board). High z-index so it
+              always renders on top; never distorts the layout. */}
           {isActing && (
-            <div className="mb-0.5 flex justify-center">
-              <div className="flex items-center gap-1.5 rounded-full bg-slate-950/95 border border-white/10 px-2.5 py-0.5 shadow-lg">
+            <div className="pointer-events-none absolute left-0 right-0 -top-4 z-30 flex justify-center">
+              <div className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-slate-950/95 border border-white/10 px-2.5 py-0.5 shadow-lg">
                 {seizureAction && seizureAction.controller === color && (
                   <span className="text-[10px] font-black uppercase tracking-wide text-red-400">
                     ⚡ Controlling opponent move
@@ -253,7 +255,7 @@ function SidePanel({
           </div>
 
           <button
-            onClick={rollPiece}
+            onClick={autoRollFullArmy || rollPiece}
             disabled={readOnly || isReady || isDraftComplete()}
             className={`rounded-lg p-2 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50 ${
               isWhitePanel
@@ -261,7 +263,7 @@ function SidePanel({
                 : "bg-red-500 text-white hover:bg-red-400"
             }`}
           >
-            Roll Both
+            {autoRollFullArmy ? "Auto-Roll Army" : "Roll Both"}
           </button>
 
           <div className="min-h-0 flex-1 rounded-xl bg-slate-800 p-2 shadow">

@@ -19,6 +19,7 @@ import {
 import {
   createNormalAction,
   createTimeoutSeizureAction,
+  ABANDONMENT_DRAW_THRESHOLD,
 } from "./engine/seizureEngine.js";
 
 import {
@@ -138,6 +139,7 @@ function App() {
     setBlackReady,
 
     rollPiece,
+    autoRollFullArmy,
     isDraftComplete,
     moveUp,
     moveDown,
@@ -217,6 +219,11 @@ function App() {
   const [timeoutStatus, setTimeoutStatus] = useState(null);
   const [timerActionKey, setTimerActionKey] = useState(0);
   const [seizureAction, setSeizureAction] = useState(null);
+
+  // Strict abandonment rule: consecutive timeouts where the player whose
+  // duty it was did NOT complete their move. Resets on any completed move.
+  // At 4 (WHITE→BLACK→WHITE→BLACK duty misses) the match is a DRAW.
+  const [missedDutyCount, setMissedDutyCount] = useState(0);
 
   // ╔══════════════════════╗
   // ✅ INITIAL SUPPORT STATE
@@ -471,6 +478,10 @@ function App() {
   const actingColor = getActingColor();
 
   function completeCurrentAction() {
+    // A move was actually completed → the duty was fulfilled, so the
+    // strict missed-duty streak resets.
+    setMissedDutyCount(0);
+
     if (seizureAction) {
       addMatchLog((meta) =>
         createSeizureCompleteLog({
@@ -510,24 +521,50 @@ function App() {
       }),
     );
 
-    addMatchLog((meta) =>
-      createSeizureStartLog({
-        ...meta,
-        controller: nextAction.controller,
-        actingColor: nextAction.actingColor,
-      }),
-    );
+    // Strict rule: every timeout increments the missed-duty counter.
+    // At the threshold (4 consecutive duty misses across both players),
+    // the match is abandoned and declared a DRAW.
+    setMissedDutyCount((prev) => {
+      const next = prev + 1;
 
-    setSelectedPieceId(null);
-    setLegalTargets([]);
-    setSeizureAction(nextAction);
+      if (next >= ABANDONMENT_DRAW_THRESHOLD) {
+        addMatchLog((meta) =>
+          createWinLog({
+            ...meta,
+            winner: "DRAW",
+            whiteScore,
+            blackScore,
+          }),
+        );
 
-    setTimeoutStatus({
-      color: nextAction.controller,
-      message: `${nextAction.controller} controls ${nextAction.actingColor}'s move`,
+        setSeizureAction(null);
+        setSelectedPieceId(null);
+        setLegalTargets([]);
+        setWinner("DRAW");
+        setTimeoutStatus(null);
+        return next;
+      }
+
+      addMatchLog((meta) =>
+        createSeizureStartLog({
+          ...meta,
+          controller: nextAction.controller,
+          actingColor: nextAction.actingColor,
+        }),
+      );
+
+      setSelectedPieceId(null);
+      setLegalTargets([]);
+      setSeizureAction(nextAction);
+
+      setTimeoutStatus({
+        color: nextAction.controller,
+        message: `${nextAction.controller} controls ${nextAction.actingColor}'s move`,
+      });
+
+      restartActionClock();
+      return next;
     });
-
-    restartActionClock();
   }
 
   // ╔══════════════════════╗
@@ -1036,6 +1073,7 @@ function App() {
     setTimeoutStatus(null);
     setTimerActionKey(0);
     setSeizureAction(null);
+    setMissedDutyCount(0);
 
     resetMatchLog();
     resetScoreSystem();
@@ -1751,6 +1789,7 @@ function App() {
               whiteArmy={whiteArmy}
               blackArmy={blackArmy}
               rollPiece={rollPiece}
+              autoRollFullArmy={autoRollFullArmy}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}
@@ -1807,6 +1846,7 @@ function App() {
               whiteArmy={whiteArmy}
               blackArmy={blackArmy}
               rollPiece={rollPiece}
+              autoRollFullArmy={autoRollFullArmy}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}
@@ -1857,6 +1897,7 @@ function App() {
               whiteArmy={whiteArmy}
               blackArmy={blackArmy}
               rollPiece={rollPiece}
+              autoRollFullArmy={autoRollFullArmy}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}
@@ -1907,6 +1948,7 @@ function App() {
               whiteArmy={whiteArmy}
               blackArmy={blackArmy}
               rollPiece={rollPiece}
+              autoRollFullArmy={autoRollFullArmy}
               moveUp={moveUp}
               moveDown={moveDown}
               getQueueLabel={getQueueLabel}

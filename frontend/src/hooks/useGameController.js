@@ -68,6 +68,7 @@ function useGameController({ onlineMatch }) {
     setBlackReady,
 
     rollPiece,
+    autoRollFullArmy,
     isDraftComplete,
     moveUp,
     moveDown,
@@ -1375,6 +1376,7 @@ function useGameController({ onlineMatch }) {
     setWhiteReady,
     setBlackReady,
     rollPiece,
+    autoRollFullArmy,
     moveUp,
     moveDown,
     getQueueLabel,
