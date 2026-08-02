@@ -101,11 +101,19 @@ function SidePanel({
 }) {
   const frontPiece = army[0];
 
+  // Whether this panel's player is the one who must act right now
+  // (spawn, support placement, or home-claim attacker). The home-claim
+  // banner is scoped to the ATTACKER's panel only — not shown on both sides.
+  const isActing =
+    pendingSpawnColor === color ||
+    pendingInitialSupportColor === color ||
+    (pendingHomeAttack && pendingHomeAttack.attacker === color);
+
   return (
     <div
       className={
         isGameStarted
-          ? "w-full rounded-xl bg-slate-950/50 px-2 py-1.5 shadow border border-white/[0.06]"
+          ? "w-full rounded-xl bg-slate-950/50 px-2 py-1 shadow border border-white/[0.06]"
           : "flex max-h-[96vh] w-full flex-col gap-2 overflow-hidden rounded-2xl bg-slate-950/40 p-2"
       }
     >
@@ -116,113 +124,114 @@ function SidePanel({
       )}
 
       {isGameStarted ? (
-        <div className="flex items-center gap-2 w-full">
-          {/* Color chip */}
-          <div
-            className={`flex-shrink-0 rounded-lg px-2 py-1.5 text-center shadow ${
-              color === "WHITE"
-                ? "bg-slate-100 text-slate-900"
-                : "bg-slate-800 text-slate-100"
-            }`}
-          >
-            <div className="text-[9px] font-bold uppercase tracking-wider opacity-70">
-              {color === "WHITE" ? "White" : "Black"}
-            </div>
-          </div>
-
-          {/* Status badges (compact inline) */}
-          {(seizureAction?.controller === color ||
-            seizureAction?.actingColor === color ||
-            timeoutStatus?.color === color ||
-            pendingInitialSupportColor === color ||
-            pendingSpawnColor === color ||
-            pendingHomeAttack) && (
-            <div className="flex items-center gap-1 flex-shrink-0">
-              {seizureAction && seizureAction.controller === color && (
-                <span className="rounded bg-red-800 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                  Seizing
-                </span>
-              )}
-              {seizureAction &&
-                seizureAction.actingColor === color &&
-                seizureAction.controller !== color && (
-                  <span className="rounded bg-red-950 px-1.5 py-0.5 text-[10px] font-bold leading-none text-red-200">
-                    Seized
+        <div className="flex w-full flex-col">
+          {/* Status banner — INLINE row above the strip so it always
+              renders above the panel and is never hidden behind the board */}
+          {isActing && (
+            <div className="mb-0.5 flex justify-center">
+              <div className="flex items-center gap-1.5 rounded-full bg-slate-950/95 border border-white/10 px-2.5 py-0.5 shadow-lg">
+                {seizureAction && seizureAction.controller === color && (
+                  <span className="text-[10px] font-black uppercase tracking-wide text-red-400">
+                    ⚡ Controlling opponent move
                   </span>
                 )}
-              {timeoutStatus?.color === color && (
-                <span className="rounded bg-red-700 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                  {timeoutStatus.message}
-                </span>
-              )}
-              {pendingInitialSupportColor === color && (
-                <span className="rounded bg-purple-700 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                  Support {initialSupportQueues[color]?.[0]}
-                </span>
-              )}
-              {pendingSpawnColor === color && (
-                <span className="rounded bg-emerald-700 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                  {getSpawnTargets().length > 0
-                    ? `Spawn ${frontPiece}`
-                    : `Wait ${frontPiece}`}
-                </span>
-              )}
-              {pendingHomeAttack && (
-                <span className="rounded bg-yellow-700 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                  Claim {pendingHomeAttack.square}
-                </span>
-              )}
+                {seizureAction &&
+                  seizureAction.actingColor === color &&
+                  seizureAction.controller !== color && (
+                    <span className="text-[10px] font-black uppercase tracking-wide text-red-300">
+                      ⛓ Opponent controls your move
+                    </span>
+                  )}
+                {timeoutStatus?.color === color && (
+                  <span className="text-[10px] font-black uppercase tracking-wide text-red-400">
+                    ⏰ {timeoutStatus.message}
+                  </span>
+                )}
+                {pendingInitialSupportColor === color && (
+                  <span className="text-[10px] font-black uppercase tracking-wide text-purple-300">
+                    ✦ Place support: {initialSupportQueues[color]?.[0]}
+                  </span>
+                )}
+                {pendingSpawnColor === color && (
+                  <span className="text-[10px] font-black uppercase tracking-wide text-emerald-300">
+                    {getSpawnTargets().length > 0
+                      ? `▲ Spawn ${frontPiece}`
+                      : `⏳ Waiting: ${frontPiece}`}
+                  </span>
+                )}
+                {pendingHomeAttack && pendingHomeAttack.attacker === color && (
+                  <span className="text-[10px] font-black uppercase tracking-wide text-yellow-300">
+                    ⚔ Claim pending at {pendingHomeAttack.square}
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Divider */}
-          <div className="h-7 w-px bg-white/10 flex-shrink-0" />
-
-          {/* Score */}
-          <div className="flex flex-col items-center flex-shrink-0">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-              Score
-            </span>
-            <span className="text-base font-black leading-tight text-amber-300 tabular-nums">
-              {score}
-            </span>
-          </div>
-
-          {/* Divider */}
-          <div className="h-7 w-px bg-white/10 flex-shrink-0" />
-
-          {/* Moves */}
-          <div className="flex flex-col items-center flex-shrink-0">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-              Moves
-            </span>
-            <span className="text-base font-black leading-tight text-cyan-300 tabular-nums">
-              {moves}/{MOVE_LIMIT}
-            </span>
-          </div>
-
-          {/* Divider */}
-          <div className="h-7 w-px bg-white/10 flex-shrink-0" />
-
-          {/* Bench label */}
-          <div className="flex flex-col items-center flex-shrink-0">
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
-              Bench
-            </span>
-            <span className="text-[10px] font-bold leading-tight text-slate-300">
-              (Next)
-            </span>
-          </div>
-
-          {/* Bench carousel — takes remaining space, expands to board width */}
-          <div className="flex-1 min-w-0">
-            {army.length === 0 ? (
-              <div className="rounded bg-slate-900 p-1.5 text-center text-xs text-slate-400">
-                Empty
+          {/* Strip row: color chip, score, moves, bench */}
+          <div className="flex items-center gap-2 w-full">
+            {/* Color chip — highlights when this player must act */}
+            <div
+              className={`flex-shrink-0 rounded-lg px-2 py-1.5 text-center shadow ${
+                color === "WHITE"
+                  ? "bg-slate-100 text-slate-900"
+                  : "bg-slate-800 text-slate-100"
+              } ${isActing ? "ring-2 ring-[var(--color-brand-gold)]" : ""}`}
+            >
+              <div className="text-[9px] font-bold uppercase tracking-wider opacity-70">
+                {color === "WHITE" ? "White" : "Black"}
               </div>
-            ) : (
-              <BenchRow pieces={army} color={color} isReadOnly={true} />
-            )}
+            </div>
+
+            {/* Divider */}
+            <div className="h-7 w-px bg-white/10 flex-shrink-0" />
+
+            {/* Score */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                Score
+              </span>
+              <span className="text-base font-black leading-tight text-amber-300 tabular-nums">
+                {score}
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div className="h-7 w-px bg-white/10 flex-shrink-0" />
+
+            {/* Moves */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                Moves
+              </span>
+              <span className="text-base font-black leading-tight text-cyan-300 tabular-nums">
+                {moves}/{MOVE_LIMIT}
+              </span>
+            </div>
+
+            {/* Divider */}
+            <div className="h-7 w-px bg-white/10 flex-shrink-0" />
+
+            {/* Bench label */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                Bench
+              </span>
+              <span className="text-[10px] font-bold leading-tight text-slate-300">
+                (Next)
+              </span>
+            </div>
+
+            {/* Bench carousel — takes remaining space, expands to board width */}
+            <div className="flex-1 min-w-0">
+              {army.length === 0 ? (
+                <div className="rounded bg-slate-900 p-1.5 text-center text-xs text-slate-400">
+                  Empty
+                </div>
+              ) : (
+                <BenchRow pieces={army} color={color} isReadOnly={true} />
+              )}
+            </div>
           </div>
         </div>
       ) : (

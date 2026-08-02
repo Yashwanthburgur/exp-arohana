@@ -1728,12 +1728,6 @@ function App() {
         onConfirm={() => setSetupConfirmed(true)}
       />
 
-      <MatchLogButton
-        isGameStarted={isGameStarted}
-        matchLog={matchLog}
-        onOpen={openMatchLog}
-      />
-
       {onlineMatch && (
         <div className="absolute left-3 top-4 z-30 rounded-full border border-cyan-400/30 bg-slate-950/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
           Room {onlineMatch.roomCode} · {socketStatus}
@@ -1741,7 +1735,7 @@ function App() {
       )}
 
       {isGameStarted ? (
-        <div className="mx-auto flex h-fit w-full max-w-[640px] flex-col gap-1 px-2 pt-14 md:pt-0">
+        <div className="mx-auto flex h-fit w-full max-w-[480px] flex-col gap-0.5 px-2 pt-14 md:pt-0">
           {/* Opponent panel (top) — black on top, like chess.com/lichess */}
           <section aria-label="Opponent panel" className="flex-shrink-0">
             <SidePanel
@@ -1833,6 +1827,16 @@ function App() {
               readOnly={false}
             />
           </section>
+
+          {/* Existing Match Log button — placed at the bottom, single row,
+              shows the latest event; clicking opens the full match log modal */}
+          <div className="flex-shrink-0">
+            <MatchLogButton
+              isGameStarted={isGameStarted}
+              matchLog={matchLog}
+              onOpen={openMatchLog}
+            />
+          </div>
         </div>
       ) : (
         <div className="mx-auto grid w-full max-w-[1500px] gap-3 px-2 pt-14 md:h-full md:grid-cols-[260px_minmax(0,1fr)_260px] md:items-center md:gap-4 md:px-4 md:pt-0">

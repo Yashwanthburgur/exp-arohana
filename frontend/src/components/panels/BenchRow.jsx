@@ -36,6 +36,12 @@ function BenchRow({
     setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
   }
 
+  // Compute arrows on first render so overflow is detected immediately
+  // even before the user scrolls.
+  if (typeof window !== "undefined") {
+    requestAnimationFrame(updateArrows);
+  }
+
   function scrollBy(dir) {
     const el = scrollRef.current;
     if (!el) return;
@@ -60,12 +66,15 @@ function BenchRow({
 
       <div
         ref={scrollRef}
-        className="flex overflow-x-auto scroll-snap-x items-end pb-0.5 snap-mandatory gap-1.5 w-full"
+        className="flex overflow-x-auto scroll-snap-x items-end pb-0.5 snap-mandatory gap-1.5 w-full max-w-full"
         style={{
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           WebkitOverflowScrolling: "touch",
           contain: "layout style",
+          // Show up to 6 items; anything beyond requires scrolling.
+          // maxWidth 100% ensures it never overflows its parent panel.
+          maxWidth: "min(calc(6 * 48px + 5 * 0.375rem), 100%)",
         }}
         onScroll={updateArrows}
       >
