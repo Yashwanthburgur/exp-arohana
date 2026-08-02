@@ -55,29 +55,56 @@ function useDraftSystem({
   const [blackReady, setBlackReady] = useState(false);
 
   // ╔══════════════════════════════╗
-  // ✅ DRAFT ROLL
+  // ✅ SHARED TIER SEQUENCE (BALANCED)
   // ╚══════════════════════════════╝
-  // Picks one random piece for a side: random tier → random piece from it.
-  function pickRandomPiece() {
+  // One sequence of REQUIRED_DRAFT_ROLLS tiers is generated ONCE for the
+  // whole match. BOTH sides draw their slot-i piece from the SAME tier at
+  // slot i — so the two armies always have an identical tier mix (e.g.
+  // S,S,A,D,B,C,C,D) and neither side can get all-powerful or all-weak.
+  const [sharedTierSequence, setSharedTierSequence] = useState([]);
+
+  function ensureSharedTierSequence() {
+    if (sharedTierSequence.length === REQUIRED_DRAFT_ROLLS) {
+      return sharedTierSequence;
+    }
+
     const activePools = getActiveTierPools(variant, customPieces);
     const tierKeys = Object.keys(activePools);
 
-    if (tierKeys.length === 0) return null;
+    if (tierKeys.length === 0) return [];
 
-    const pickedTier = tierKeys[Math.floor(Math.random() * tierKeys.length)];
-    const pool = activePools[pickedTier];
+    const sequence = Array.from(
+      { length: REQUIRED_DRAFT_ROLLS },
+      () => tierKeys[Math.floor(Math.random() * tierKeys.length)],
+    );
+
+    setSharedTierSequence(sequence);
+    return sequence;
+  }
+
+  // Picks one random piece for a side from the SHARED tier at slotIndex.
+  function pickFromSharedSlot(slotIndex) {
+    const sequence = ensureSharedTierSequence();
+    const tier = sequence[slotIndex];
+
+    if (!tier) return null;
+
+    const activePools = getActiveTierPools(variant, customPieces);
+    const pool = activePools[tier];
+
+    if (!pool || pool.length === 0) return null;
 
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  // Rolls ONE slot. When a color is given, only THAT side gets the roll
-  // (each player's button rolls only their own army). Without a color it
-  // keeps the legacy behavior of rolling both sides from one shared tier.
+  // Rolls ONE slot. Only THAT side gets the roll (each player's button
+  // rolls only their own army), but the piece is picked from the shared
+  // tier at that slot so balance is preserved.
   function rollPiece(color) {
     if (color === "WHITE") {
       setWhiteArmy((prev) => {
         if (prev.length >= REQUIRED_DRAFT_ROLLS) return prev;
-        return [...prev, pickRandomPiece()];
+        return [...prev, pickFromSharedSlot(prev.length)];
       });
       return;
     }
@@ -85,7 +112,7 @@ function useDraftSystem({
     if (color === "BLACK") {
       setBlackArmy((prev) => {
         if (prev.length >= REQUIRED_DRAFT_ROLLS) return prev;
-        return [...prev, pickRandomPiece()];
+        return [...prev, pickFromSharedSlot(prev.length)];
       });
       return;
     }
@@ -97,13 +124,15 @@ function useDraftSystem({
 
     if (bothComplete) return;
 
+    const slotIndex = Math.max(whiteArmy.length, blackArmy.length);
+    const tier = ensureSharedTierSequence()[slotIndex];
+
+    if (!tier) return;
+
     const activePools = getActiveTierPools(variant, customPieces);
-    const tierKeys = Object.keys(activePools);
+    const pool = activePools[tier];
 
-    if (tierKeys.length === 0) return;
-
-    const pickedTier = tierKeys[Math.floor(Math.random() * tierKeys.length)];
-    const pool = activePools[pickedTier];
+    if (!pool || pool.length === 0) return;
 
     const whitePick = pool[Math.floor(Math.random() * pool.length)];
     const blackPick = pool[Math.floor(Math.random() * pool.length)];
@@ -122,14 +151,25 @@ function useDraftSystem({
   // ╔══════════════════════════════╗
   // ✅ DEPLOY FULL ARMY (ONE CLICK)
   // ╚══════════════════════════════╝
-  // Fills the entire 8-slot army in one click. When a color is given,
-  // ONLY that side's army is deployed (each player deploys their own).
+  // Fills the entire 8-slot army in one click from the SHARED tier
+  // sequence. When a color is given, ONLY that side's army is deployed
+  // (each player deploys their own) — but both get the same tier mix.
   function autoRollFullArmy(color) {
+    const sequence = ensureSharedTierSequence();
+
     if (color === "WHITE" || color === "BLACK") {
-      const rolls = [];
-      for (let i = 0; i < REQUIRED_DRAFT_ROLLS; i++) {
-        rolls.push(pickRandomPiece());
-      }
+      const rolls = Array.from({ length: REQUIRED_DRAFT_ROLLS }, (_, i) => {
+        const tier = sequence[i];
+
+        if (!tier) return null;
+
+        const activePools = getActiveTierPools(variant, customPieces);
+        const pool = activePools[tier];
+
+        if (!pool || pool.length === 0) return null;
+
+        return pool[Math.floor(Math.random() * pool.length)];
+      });
 
       if (color === "WHITE") {
         setWhiteArmy(rolls);
@@ -139,18 +179,19 @@ function useDraftSystem({
       return;
     }
 
-    // No color → deploy both armies (legacy / auto path).
+    // No color → deploy both armies from the same shared sequence.
     const whiteRolls = [];
     const blackRolls = [];
 
     for (let i = 0; i < REQUIRED_DRAFT_ROLLS; i++) {
+      const tier = sequence[i];
+
+      if (!tier) break;
+
       const activePools = getActiveTierPools(variant, customPieces);
-      const tierKeys = Object.keys(activePools);
+      const pool = activePools[tier];
 
-      if (tierKeys.length === 0) break;
-
-      const pickedTier = tierKeys[Math.floor(Math.random() * tierKeys.length)];
-      const pool = activePools[pickedTier];
+      if (!pool || pool.length === 0) break;
 
       whiteRolls.push(pool[Math.floor(Math.random() * pool.length)]);
       blackRolls.push(pool[Math.floor(Math.random() * pool.length)]);
@@ -256,6 +297,8 @@ function useDraftSystem({
     setBlackArmy([]);
     setWhiteReady(false);
     setBlackReady(false);
+    // Fresh shared tier sequence for the next match.
+    setSharedTierSequence([]);
   }
 
   return {
