@@ -250,144 +250,117 @@ function SidePanel({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-lg bg-slate-800 p-2 text-center text-xs">
-              <div className="text-slate-400">Drafted</div>
-              <div className="text-lg font-black text-amber-300">
-                {army.length}/8
+          {/* Compact draft panel — normal table like the original, but
+              compressed (8 slots in a 2-column grid) so Black (top) and
+              White (bottom) both fit on a single screen. */}
+          <div className="rounded-xl bg-slate-800 p-2 shadow">
+            <div className="flex items-center gap-2">
+              {/* Drafted count */}
+              <div className="flex flex-col items-center flex-shrink-0 px-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  Drafted
+                </span>
+                <span className="text-base font-black leading-tight text-amber-300 tabular-nums">
+                  {army.length}/{REQUIRED_DRAFT_ROLLS}
+                </span>
               </div>
-            </div>
 
-            <div className="rounded-lg bg-slate-800 p-2 text-center text-xs">
-              <div className="text-slate-400">Material</div>
-              <div className="text-lg font-black text-cyan-300">
-                {calculateMaterialTotal(army).toFixed(1)}
+              {/* Material */}
+              <div className="flex flex-col items-center flex-shrink-0 px-1">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  Mat.
+                </span>
+                <span className="text-base font-black leading-tight text-cyan-300 tabular-nums">
+                  {calculateMaterialTotal(army).toFixed(1)}
+                </span>
               </div>
+
+              {/* DEPLOY button */}
+              <button
+                onClick={() =>
+                  autoRollFullArmy ? autoRollFullArmy(color) : rollPiece(color)
+                }
+                disabled={
+                  readOnly || isReady || army.length >= REQUIRED_DRAFT_ROLLS
+                }
+                className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isWhitePanel
+                    ? "bg-cyan-500 text-black hover:bg-cyan-400"
+                    : "bg-red-500 text-white hover:bg-red-400"
+                }`}
+              >
+                {army.length >= REQUIRED_DRAFT_ROLLS ? "DEPLOYED" : "DEPLOY"}
+              </button>
+
+              {/* READY button */}
+              <button
+                onClick={() => setReady(true)}
+                disabled={
+                  readOnly || isReady || army.length < REQUIRED_DRAFT_ROLLS
+                }
+                className={`flex-shrink-0 rounded-lg px-3 py-1.5 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50 ${
+                  isReady
+                    ? "bg-slate-700 text-slate-300"
+                    : "bg-green-600 text-white hover:bg-green-500"
+                }`}
+              >
+                {isReady ? "READY ✓" : "READY"}
+              </button>
             </div>
-          </div>
 
-          <button
-            onClick={() =>
-              autoRollFullArmy ? autoRollFullArmy(color) : rollPiece(color)
-            }
-            disabled={
-              readOnly || isReady || army.length >= REQUIRED_DRAFT_ROLLS
-            }
-            className={`rounded-lg p-2 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50 ${
-              isWhitePanel
-                ? "bg-cyan-500 text-black hover:bg-cyan-400"
-                : "bg-red-500 text-white hover:bg-red-400"
-            }`}
-          >
-            {army.length >= REQUIRED_DRAFT_ROLLS ? "ARMY READY" : "DEPLOY"}
-          </button>
+            {/* Draft queue — compact 2-column table (4 rows × 2 cols) */}
+            <div className="mt-1.5 grid grid-cols-2 gap-1">
+              {Array.from({ length: REQUIRED_DRAFT_ROLLS }).map(
+                (_, slotIndex) => {
+                  const piece = army[slotIndex];
+                  const isFirst = slotIndex === 0;
+                  const isLastFilled = slotIndex === army.length - 1;
+                  const isEmpty = !piece;
 
-          <div className="min-h-0 flex-1 rounded-xl bg-slate-800 p-2 shadow">
-            <div className="mb-2 text-center text-xs font-black uppercase tracking-wide text-slate-300">
-              Draft Queue
-            </div>
-
-            <div className="flex max-h-full flex-col gap-1 overflow-y-auto pr-1">
-              {Array.from({ length: 8 }).map((_, slotIndex) => {
-                const piece = army[slotIndex];
-                const isFirst = slotIndex === 0;
-                const isLastFilled = slotIndex === army.length - 1;
-                const isEmpty = !piece;
-
-                return (
-                  <div
-                    key={`${color}-slot-${slotIndex}`}
-                    className={`
-                      flex h-9 items-center justify-between gap-2
-                      rounded-lg border px-2 text-xs shadow-sm
-                      ${
+                  return (
+                    <div
+                      key={`${color}-slot-${slotIndex}`}
+                      className={`flex h-7 items-center justify-between gap-1 rounded-md border px-1.5 text-[11px] ${
                         isEmpty
                           ? "border-dashed border-slate-700 bg-slate-900 text-slate-500"
                           : "border-slate-700 bg-slate-900 text-slate-100"
-                      }
-                    `}
-                  >
-                    <div className="min-w-0">
-                      {piece ? (
-                        <>
-                          <div className="truncate font-semibold">
-                            {slotIndex + 1}.{" "}
-                            {getQueueLabel(piece, slotIndex, false)}
-                          </div>
+                      }`}
+                    >
+                      <span className="min-w-0 truncate font-semibold">
+                        {slotIndex + 1}.{" "}
+                        {piece
+                          ? getQueueLabel(piece, slotIndex, false)
+                          : "Empty"}
+                      </span>
 
-                          {slotIndex === 0 && (
-                            <div className="text-[9px] uppercase tracking-wide text-amber-300">
-                              Next starter
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div>{slotIndex + 1}. Empty</div>
+                      {piece && !isReady && (
+                        <span className="flex shrink-0 gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => moveUp(color, slotIndex)}
+                            disabled={isFirst}
+                            title="Move up"
+                            className="flex h-5 w-5 items-center justify-center rounded bg-emerald-500 text-black text-[9px] font-black hover:bg-emerald-400 disabled:opacity-30"
+                          >
+                            ▲
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveDown(color, slotIndex)}
+                            disabled={isLastFilled}
+                            title="Move down"
+                            className="flex h-5 w-5 items-center justify-center rounded bg-red-500 text-white text-[9px] font-black hover:bg-red-400 disabled:opacity-30"
+                          >
+                            ▼
+                          </button>
+                        </span>
                       )}
                     </div>
-
-                    {piece && (
-                      <div className="flex shrink-0 gap-1">
-                        <button
-                          type="button"
-                          onClick={() => moveUp(color, slotIndex)}
-                          disabled={readOnly || isReady || isFirst}
-                          title="Move up"
-                          className={`
-                            flex h-7 w-7 items-center justify-center rounded-md
-                            text-xs font-black shadow
-                            ${
-                              readOnly || isReady || isFirst
-                                ? "cursor-not-allowed bg-slate-700 text-slate-500"
-                                : "bg-emerald-500 text-black hover:bg-emerald-400"
-                            }
-                          `}
-                        >
-                          ▲
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => moveDown(color, slotIndex)}
-                          disabled={readOnly || isReady || isLastFilled}
-                          title="Move down"
-                          className={`
-                            flex h-7 w-7 items-center justify-center rounded-md
-                            text-xs font-black shadow
-                            ${
-                              readOnly || isReady || isLastFilled
-                                ? "cursor-not-allowed bg-slate-700 text-slate-500"
-                                : "bg-red-500 text-white hover:bg-red-400"
-                            }
-                          `}
-                        >
-                          ▼
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                },
+              )}
             </div>
           </div>
-
-          <button
-            onClick={() => setReady(true)}
-            disabled={
-              readOnly || isReady || army.length < 8 || !isDraftComplete()
-            }
-            className={`
-              rounded-lg p-2 text-sm font-black
-              disabled:cursor-not-allowed disabled:opacity-50
-              ${
-                isReady
-                  ? "bg-slate-700 text-slate-300"
-                  : "bg-green-600 text-white hover:bg-green-500"
-              }
-            `}
-          >
-            {isReady ? "LOCKED" : "READY"}
-          </button>
         </>
       )}
     </div>

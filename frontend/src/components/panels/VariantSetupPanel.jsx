@@ -73,7 +73,7 @@ function VariantSetupPanel({
         : CLASSIC_PIECES;
 
   return (
-    <div className="absolute left-4 top-2 z-20 w-70 rounded-xl border border-slate-700 bg-slate-950/95 p-3 text-xs shadow-xl">
+    <div className="w-full rounded-xl border border-slate-700 bg-slate-950/95 p-3 text-xs shadow-xl">
       {/* Title */}
       <div className="mb-2 text-center text-sm font-bold text-cyan-300">
         Game Variant

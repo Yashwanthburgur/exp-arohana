@@ -15,7 +15,7 @@ function TimerSetupPanel({
   if (isGameStarted || isConfirmed) return null;
 
   return (
-    <div className="absolute left-1/2 top-2 z-20 w-75 -translate-x-1/2 rounded-xl border border-slate-700 bg-slate-950/95 p-2 text-xs shadow-xl">
+    <div className="w-full rounded-xl border border-slate-700 bg-slate-950/95 p-2 text-xs shadow-xl">
       <div className="mb-1 text-center text-sm font-bold text-amber-300">
         Chamber Clock
       </div>

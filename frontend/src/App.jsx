@@ -225,6 +225,11 @@ function App() {
   // At 4 (WHITE→BLACK→WHITE→BLACK duty misses) the match is a DRAW.
   const [missedDutyCount, setMissedDutyCount] = useState(0);
 
+  // Ready countdown for the DEPLOY stage: once setup is confirmed, both
+  // players have 30s to press READY. If either hasn't, the match is
+  // abandoned (draw).
+  const [readyCountdown, setReadyCountdown] = useState(null);
+
   // ╔══════════════════════╗
   // ✅ INITIAL SUPPORT STATE
   // ╚══════════════════════╝
@@ -863,6 +868,47 @@ function App() {
     onlineMatch,
   ]);
 
+  // Ready countdown: starts once setup is confirmed (draft stage). Both
+  // players have 60s to hit READY; otherwise the match is abandoned (draw).
+  useEffect(() => {
+    if (!setupConfirmed || isGameStarted || winner) return;
+
+    setReadyCountdown(60);
+
+    const intervalId = setInterval(() => {
+      setReadyCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalId);
+
+          // Abandoned: one player wasn't ready in time → DRAW.
+          setWinner("DRAW");
+          addMatchLog((meta) =>
+            createWinLog({
+              ...meta,
+              winner: "DRAW",
+              whiteScore,
+              blackScore,
+            }),
+          );
+          setTimeoutStatus(null);
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [
+    setupConfirmed,
+    isGameStarted,
+    winner,
+    whiteReady,
+    blackReady,
+    whiteScore,
+    blackScore,
+  ]);
+
   useEffect(() => {
     if (!timerEnabled) return;
     if (!activeTimerColor) return;
@@ -1074,6 +1120,7 @@ function App() {
     setTimerActionKey(0);
     setSeizureAction(null);
     setMissedDutyCount(0);
+    setReadyCountdown(null);
 
     resetMatchLog();
     resetScoreSystem();
@@ -1741,30 +1788,44 @@ function App() {
         </button>
       </div>
 
-      <VariantSetupPanel
-        isGameStarted={isGameStarted}
-        isConfirmed={setupConfirmed}
-        variant={variant}
-        setVariant={setVariant}
-        customPieces={customPieces}
-        setCustomPieces={setCustomPieces}
-        onConfirm={() => setSetupConfirmed(true)}
-      />
+      {/* ═══════════════════════════════════════════
+          STAGE 1 — PRE-MATCH SETUP (variant + clock)
+          Shown until the player confirms the setup.
+          ═══════════════════════════════════════════ */}
+      {!setupConfirmed && (
+        <div className="mx-auto flex h-full w-full max-w-[480px] flex-col items-center justify-center gap-2 px-2 pt-14 md:pt-0 overflow-y-auto">
+          {/* Chamber Clock first (top) */}
+          <div className="w-full max-w-[420px]">
+            <TimerSetupPanel
+              isGameStarted={isGameStarted}
+              isConfirmed={setupConfirmed}
+              timerEnabled={timerEnabled}
+              setTimerEnabled={setTimerEnabled}
+              reserveOption={reserveOption}
+              setReserveOption={setReserveOption}
+              customReserveMinutes={customReserveMinutes}
+              setCustomReserveMinutes={setCustomReserveMinutes}
+              RESERVE_OPTIONS={RESERVE_OPTIONS}
+              formatClock={formatClock}
+              currentReserveSeconds={getCurrentReserveSeconds()}
+              onConfirm={() => setSetupConfirmed(true)}
+            />
+          </div>
 
-      <TimerSetupPanel
-        isGameStarted={isGameStarted}
-        isConfirmed={setupConfirmed}
-        timerEnabled={timerEnabled}
-        setTimerEnabled={setTimerEnabled}
-        reserveOption={reserveOption}
-        setReserveOption={setReserveOption}
-        customReserveMinutes={customReserveMinutes}
-        setCustomReserveMinutes={setCustomReserveMinutes}
-        RESERVE_OPTIONS={RESERVE_OPTIONS}
-        formatClock={formatClock}
-        currentReserveSeconds={getCurrentReserveSeconds()}
-        onConfirm={() => setSetupConfirmed(true)}
-      />
+          {/* Game Variant second (below the timer), centered */}
+          <div className="w-full max-w-[420px]">
+            <VariantSetupPanel
+              isGameStarted={isGameStarted}
+              isConfirmed={setupConfirmed}
+              variant={variant}
+              setVariant={setVariant}
+              customPieces={customPieces}
+              setCustomPieces={setCustomPieces}
+              onConfirm={() => setSetupConfirmed(true)}
+            />
+          </div>
+        </div>
+      )}
 
       {onlineMatch && (
         <div className="absolute left-3 top-4 z-30 rounded-full border border-cyan-400/30 bg-slate-950/90 px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-300">
@@ -1881,22 +1942,44 @@ function App() {
             />
           </div>
         </div>
-      ) : (
-        <div className="mx-auto grid w-full max-w-[1500px] gap-3 px-2 pt-14 md:h-full md:grid-cols-[260px_minmax(0,1fr)_260px] md:items-center md:gap-4 md:px-4 md:pt-0">
-          <section
-            aria-label="Opponent panel"
-            className="order-1 flex flex-col justify-center min-w-0"
-          >
+      ) : setupConfirmed ? (
+        /* ═══════════════════════════════════════════
+           STAGE 2 — DEPLOY / DRAFT
+           Both players deploy their own army (Black top, White bottom,
+           like the mobile play layout) then press READY. The board is NOT
+           shown until both are ready (isGameStarted).
+           ═══════════════════════════════════════════ */
+        <div className="mx-auto flex h-full w-full max-w-[480px] flex-col gap-2 px-2 pt-14 md:pt-0">
+          {/* Ready countdown banner */}
+          {readyCountdown !== null && readyCountdown > 0 && !isGameStarted && (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-400/40 bg-slate-950/90 px-3 py-2 flex-shrink-0">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-300">
+                Both players must press READY
+              </span>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-sm font-black tabular-nums ${
+                  readyCountdown <= 10
+                    ? "bg-red-700 text-white animate-pulse"
+                    : "bg-slate-800 text-amber-300"
+                }`}
+              >
+                {readyCountdown}s
+              </span>
+            </div>
+          )}
+
+          {/* Black panel (top) */}
+          <section aria-label="Black panel" className="flex-shrink-0">
             <SidePanel
-              color={localColor === "WHITE" ? "BLACK" : "WHITE"}
-              army={localColor === "WHITE" ? blackArmy : whiteArmy}
-              isReady={localColor === "WHITE" ? blackReady : whiteReady}
-              setReady={localColor === "WHITE" ? setBlackReady : setWhiteReady}
-              score={localColor === "WHITE" ? blackScore : whiteScore}
-              moves={localColor === "WHITE" ? blackMoves : whiteMoves}
+              color="BLACK"
+              army={blackArmy}
+              isReady={blackReady}
+              setReady={setBlackReady}
+              score={blackScore}
+              moves={blackMoves}
               MOVE_LIMIT={MOVE_LIMIT}
               isGameStarted={isGameStarted}
-              isWhitePanel={localColor !== "WHITE"}
+              isWhitePanel={false}
               whiteArmy={whiteArmy}
               blackArmy={blackArmy}
               rollPiece={rollPiece}
@@ -1923,32 +2006,18 @@ function App() {
             />
           </section>
 
-          <div className="order-2 flex min-w-0 items-center justify-center py-1 md:py-0">
-            <Board
-              pieces={pieces}
-              selectedPieceId={selectedPieceId}
-              legalTargets={boardLegalTargets}
-              onSquareClick={handleSquareClick}
-              whiteHome={whiteHome}
-              blackHome={blackHome}
-              isFlipped={localColor === "BLACK"}
-            />
-          </div>
-
-          <section
-            aria-label="Your player panel"
-            className="order-3 flex flex-col justify-center min-w-0"
-          >
+          {/* White panel (bottom) */}
+          <section aria-label="White panel" className="flex-shrink-0">
             <SidePanel
-              color={localColor}
-              army={localColor === "WHITE" ? whiteArmy : blackArmy}
-              isReady={localColor === "WHITE" ? whiteReady : blackReady}
-              setReady={localColor === "WHITE" ? setWhiteReady : setBlackReady}
-              score={localColor === "WHITE" ? whiteScore : blackScore}
-              moves={localColor === "WHITE" ? whiteMoves : blackMoves}
+              color="WHITE"
+              army={whiteArmy}
+              isReady={whiteReady}
+              setReady={setWhiteReady}
+              score={whiteScore}
+              moves={whiteMoves}
               MOVE_LIMIT={MOVE_LIMIT}
               isGameStarted={isGameStarted}
-              isWhitePanel={localColor === "WHITE"}
+              isWhitePanel={true}
               whiteArmy={whiteArmy}
               blackArmy={blackArmy}
               rollPiece={rollPiece}
@@ -1975,7 +2044,7 @@ function App() {
             />
           </section>
         </div>
-      )}
+      ) : null}
 
       <PromotionModal
         promotionPending={pendingPromotion}
