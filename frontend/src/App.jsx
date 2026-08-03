@@ -868,8 +868,11 @@ function App() {
     onlineMatch,
   ]);
 
-  // Ready countdown: starts once setup is confirmed (draft stage). Both
-  // players have 60s to hit READY; otherwise the match is abandoned (draw).
+  // Ready countdown: ONE fixed 60-second window starts when setup is
+  // confirmed. Both players must press READY within this single window —
+  // clicking READY does NOT reset it. If either hasn't pressed READY when
+  // it hits 0, the match is abandoned (draw). It only stops early once the
+  // game actually starts (both ready) or the match ends.
   useEffect(() => {
     if (!setupConfirmed || isGameStarted || winner) return;
 
@@ -899,15 +902,10 @@ function App() {
     }, 1000);
 
     return () => clearInterval(intervalId);
-  }, [
-    setupConfirmed,
-    isGameStarted,
-    winner,
-    whiteReady,
-    blackReady,
-    whiteScore,
-    blackScore,
-  ]);
+    // Deliberately NOT depending on whiteReady/blackReady — the countdown
+    // is a single fixed window and must not restart when someone clicks
+    // READY. It stops only when the game starts / ends.
+  }, [setupConfirmed, isGameStarted, winner]);
 
   useEffect(() => {
     if (!timerEnabled) return;
