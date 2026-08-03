@@ -1240,7 +1240,11 @@ function App() {
   // ╔══════════════════════╗
   // ✅ ALL-OUT / MOVE COUNTERS
   // ╚══════════════════════╝
-  function handleAllOut(updatedPieces, capturedPiece = null) {
+  function handleAllOut(
+    updatedPieces,
+    capturedPiece = null,
+    claimedPiece = null,
+  ) {
     const whiteAlive = updatedPieces.some(
       (piece) => piece.color === "WHITE" && piece.square !== null,
     );
@@ -1249,11 +1253,20 @@ function App() {
       (piece) => piece.color === "BLACK" && piece.square !== null,
     );
 
-    const whiteQueueCount =
-      whiteArmy.length + (capturedPiece?.color === "WHITE" ? 1 : 0);
+    // Queue counts must include pieces that were JUST returned to the queue
+    // in this same event (a capture or a home-claim success/defense). The
+    // state closure is stale at this point, so add them explicitly.
+    const whiteReturned =
+      (capturedPiece?.color === "WHITE" ? 1 : 0) +
+      (claimedPiece?.color === "WHITE" ? 1 : 0);
 
-    const blackQueueCount =
-      blackArmy.length + (capturedPiece?.color === "BLACK" ? 1 : 0);
+    const blackReturned =
+      (capturedPiece?.color === "BLACK" ? 1 : 0) +
+      (claimedPiece?.color === "BLACK" ? 1 : 0);
+
+    const whiteQueueCount = whiteArmy.length + whiteReturned;
+
+    const blackQueueCount = blackArmy.length + blackReturned;
 
     let newPieces = [...updatedPieces];
 
@@ -1617,6 +1630,12 @@ function App() {
         square,
       };
 
+      // Piece that may be returned to queue by a home-claim resolution
+      // (claim success or defense). Used so ALL_OUT's queue count is exact.
+      const claimedRemovedPiece = pendingHomeAttack
+        ? pieces.find((p) => p.id === pendingHomeAttack.pieceId)
+        : null;
+
       const claimResult = resolvePendingHomeClaim(movedPiece, newPieces);
 
       newPieces = claimResult.piecesAfterClaim;
@@ -1656,7 +1675,11 @@ function App() {
         createNewHomeClaimIfNeeded(stillExistingMovedPiece, square);
       }
 
-      const allOutResult = handleAllOut(newPieces, capturedPiece);
+      const allOutResult = handleAllOut(
+        newPieces,
+        capturedPiece,
+        claimedRemovedPiece,
+      );
 
       newPieces = allOutResult.piecesAfterAllOut;
 
