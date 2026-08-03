@@ -732,11 +732,14 @@ function getSoldierMoves(piece, pieces) {
 //     only prevents new landings.
 // When multiple Skunks exist, their auras are unioned.
 
-function getSkunkRestrictedSquares(pieces) {
+function getSkunkRestrictedSquares(pieces, excludePiece = null) {
   const restricted = new Set()
 
   for (const p of pieces) {
+    // Skip the moving piece itself (a Skunk is never blocked by its OWN
+    // aura — it can always move one square in any direction).
     if (p.type !== 'SKUNK' || !p.square) continue
+    if (excludePiece && p.id === excludePiece.id) continue
 
     const { x, y } = squareToPosition(p.square)
     const offsets = [
@@ -760,15 +763,24 @@ function getSkunkRestrictedSquares(pieces) {
 }
 
 function applySkunkAuraFilter(targets, movingPiece, pieces) {
-  const restricted = getSkunkRestrictedSquares(pieces)
+  // The moving Skunk is NOT restricted by its own aura — it can move one
+  // square in any direction like a king. Its aura only restricts OTHER
+  // pieces from landing adjacent to it. Also, a Skunk itself may freely
+  // step onto squares adjacent to OTHER Skunks' squares (its own mobility
+  // is king-like; the aura is a landing restriction for other pieces).
+  const restricted = getSkunkRestrictedSquares(pieces, movingPiece)
 
   if (restricted.size === 0) return targets
 
   return targets.filter(target => {
+    // A Skunk's own movement is never blocked by any aura.
+    if (movingPiece.type === 'SKUNK') return true
+
     // Not restricted — always allowed
     if (!restricted.has(target.square)) return true
 
     // Direct capture of a Skunk on the restricted square is permitted
+    // (long-range or step pieces may land directly on a Skunk square).
     const occupant = pieces.find(p => p.square === target.square)
     if (
       occupant &&
@@ -874,4 +886,4 @@ export function getLegalTargets(piece, pieces, context = {}) {
 
   // Apply Skunk aura restriction to every piece's movement
   return applySkunkAuraFilter(rawTargets, piece, pieces)
-}
+}
