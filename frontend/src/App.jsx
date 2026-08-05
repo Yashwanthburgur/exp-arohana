@@ -58,8 +58,7 @@ import useAuthSession from "./hooks/useAuthSession.js";
 import useMatchSocket from "./hooks/useMatchSocket.js";
 
 import SidePanel from "./components/panels/SidePanel.jsx";
-import TimerSetupPanel from "./components/panels/TimerSetupPanel.jsx";
-import VariantSetupPanel from "./components/panels/VariantSetupPanel.jsx";
+import PreGameSetupPanel from "./components/panels/PreGameSetupPanel.jsx";
 import MatchLogButton from "./components/panels/MatchLogButton.jsx";
 import MatchLogModal from "./components/panels/MatchLogModal.jsx";
 import WinnerModal from "./components/panels/WinnerModal.jsx";
@@ -185,6 +184,9 @@ function App() {
     winner,
     setWinner,
 
+    winGoal,
+    setWinGoal,
+
     getScore: getScoreFromHook,
     getScoreSnapshot: getScoreSnapshotFromHook,
     awardScore: awardScoreFromHook,
@@ -280,7 +282,8 @@ function App() {
     setWhiteScore,
     setBlackScore,
     sendToQueue,
-    TARGET_SCORE,
+    // Dynamic win threshold from the Point Goal selector.
+    TARGET_SCORE: winGoal,
     SCORE_VALUES,
   });
 
@@ -1059,10 +1062,14 @@ function App() {
     if (hasLegalMove) return;
 
     const nextWhiteScore =
-      opponent === "WHITE" ? whiteScore + SCORE_VALUES.ALL_OUT : whiteScore;
+      opponent === "WHITE"
+        ? whiteScore + SCORE_VALUES.NO_LEGAL_MOVE
+        : whiteScore;
 
     const nextBlackScore =
-      opponent === "BLACK" ? blackScore + SCORE_VALUES.ALL_OUT : blackScore;
+      opponent === "BLACK"
+        ? blackScore + SCORE_VALUES.NO_LEGAL_MOVE
+        : blackScore;
 
     addMatchLog((meta) =>
       createAllOutLog({
@@ -1244,6 +1251,9 @@ function App() {
     updatedPieces,
     capturedPiece = null,
     claimedPiece = null,
+    // Scores AFTER the action's direct changes (claim reward/penalty,
+    // capture, promotion) — NOT the stale pre-action closure.
+    scoresAfterAction = { white: whiteScore, black: blackScore },
   ) {
     const whiteAlive = updatedPieces.some(
       (piece) => piece.color === "WHITE" && piece.square !== null,
@@ -1252,6 +1262,9 @@ function App() {
     const blackAlive = updatedPieces.some(
       (piece) => piece.color === "BLACK" && piece.square !== null,
     );
+
+    const whiteScoreNow = scoresAfterAction.white;
+    const blackScoreNow = scoresAfterAction.black;
 
     // Queue counts must include pieces that were JUST returned to the queue
     // in this same event (a capture or a home-claim success/defense). The
@@ -1271,7 +1284,7 @@ function App() {
     let newPieces = [...updatedPieces];
 
     if (!whiteAlive && whiteQueueCount > 0) {
-      const nextBlackScore = blackScore + SCORE_VALUES.ALL_OUT;
+      const nextBlackScore = blackScoreNow + SCORE_VALUES.ALL_OUT;
 
       addMatchLog((meta) =>
         createAllOutLog({
@@ -1279,7 +1292,7 @@ function App() {
           scoringColor: "BLACK",
           targetColor: "WHITE",
           points: SCORE_VALUES.ALL_OUT,
-          scoreAfter: getScoreSnapshot(whiteScore, nextBlackScore),
+          scoreAfter: getScoreSnapshot(whiteScoreNow, nextBlackScore),
         }),
       );
 
@@ -1297,7 +1310,7 @@ function App() {
     }
 
     if (!blackAlive && blackQueueCount > 0) {
-      const nextWhiteScore = whiteScore + SCORE_VALUES.ALL_OUT;
+      const nextWhiteScore = whiteScoreNow + SCORE_VALUES.ALL_OUT;
 
       addMatchLog((meta) =>
         createAllOutLog({
@@ -1305,7 +1318,7 @@ function App() {
           scoringColor: "WHITE",
           targetColor: "BLACK",
           points: SCORE_VALUES.ALL_OUT,
-          scoreAfter: getScoreSnapshot(nextWhiteScore, blackScore),
+          scoreAfter: getScoreSnapshot(nextWhiteScore, blackScoreNow),
         }),
       );
 
@@ -1679,6 +1692,12 @@ function App() {
         newPieces,
         capturedPiece,
         claimedRemovedPiece,
+        // Scores already updated by the home-claim resolution (if any):
+        // ALL_OUT must use the post-claim scores, never the pre-action ones.
+        {
+          white: claimResult.nextWhiteScore ?? whiteScore,
+          black: claimResult.nextBlackScore ?? blackScore,
+        },
       );
 
       newPieces = allOutResult.piecesAfterAllOut;
@@ -1810,16 +1829,18 @@ function App() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          STAGE 1 — PRE-MATCH SETUP (variant + clock)
-          Shown until the player confirms the setup.
+          STAGE 1 — PRE-MATCH SETUP
+          One combined panel: Chamber Clock + Game Variant + Point Goal,
+          with a SINGLE "Done" button. Shown until confirmed.
           ═══════════════════════════════════════════ */}
       {!setupConfirmed && (
-        <div className="mx-auto flex h-full w-full max-w-[480px] flex-col items-center justify-center gap-2 px-2 pt-14 md:pt-0 overflow-y-auto">
-          {/* Chamber Clock first (top) */}
+        <div className="mx-auto flex h-full w-full max-w-[480px] flex-col items-center justify-center px-2 pt-14 md:pt-0 overflow-y-auto">
           <div className="w-full max-w-[420px]">
-            <TimerSetupPanel
-              isGameStarted={isGameStarted}
-              isConfirmed={setupConfirmed}
+            <PreGameSetupPanel
+              variant={variant}
+              setVariant={setVariant}
+              customPieces={customPieces}
+              setCustomPieces={setCustomPieces}
               timerEnabled={timerEnabled}
               setTimerEnabled={setTimerEnabled}
               reserveOption={reserveOption}
@@ -1829,19 +1850,8 @@ function App() {
               RESERVE_OPTIONS={RESERVE_OPTIONS}
               formatClock={formatClock}
               currentReserveSeconds={getCurrentReserveSeconds()}
-              onConfirm={() => setSetupConfirmed(true)}
-            />
-          </div>
-
-          {/* Game Variant second (below the timer), centered */}
-          <div className="w-full max-w-[420px]">
-            <VariantSetupPanel
-              isGameStarted={isGameStarted}
-              isConfirmed={setupConfirmed}
-              variant={variant}
-              setVariant={setVariant}
-              customPieces={customPieces}
-              setCustomPieces={setCustomPieces}
+              winGoal={winGoal}
+              setWinGoal={setWinGoal}
               onConfirm={() => setSetupConfirmed(true)}
             />
           </div>

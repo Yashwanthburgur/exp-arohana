@@ -1,5 +1,8 @@
 import { useState, useCallback } from "react";
-import { createHomeClaim, resolveHomeClaim } from "../engine/homeClaimEngine.js";
+import {
+  createHomeClaim,
+  resolveHomeClaim,
+} from "../engine/homeClaimEngine.js";
 import { HOME_SQUARES } from "../constants/boardConfig.js";
 
 // ╔══════════════════════════════╗
@@ -29,9 +32,12 @@ function useHomeSystem({
   setWhiteScore,
   setBlackScore,
   sendToQueue,
+  // Dynamic win threshold (Sprint 15 / Standard 25 / Marathon 50).
   TARGET_SCORE,
   SCORE_VALUES,
 }) {
+  // The winning score is dynamic — use the passed-in target directly.
+  const effectiveTarget = TARGET_SCORE ?? 25;
   const [whiteHome, setWhiteHome] = useState(null);
   const [blackHome, setBlackHome] = useState(null);
   const [pendingHomeAttack, setPendingHomeAttack] = useState(null);
@@ -77,7 +83,7 @@ function useHomeSystem({
 
     if (homeColor === "WHITE") {
       const available = HOME_SQUARES.filter(
-        (sq) => sq !== whiteHome && sq !== blackHome
+        (sq) => sq !== whiteHome && sq !== blackHome,
       );
       if (available.length > 0) {
         newHomeSquare = available[Math.floor(Math.random() * available.length)];
@@ -87,7 +93,7 @@ function useHomeSystem({
 
     if (homeColor === "BLACK") {
       const available = HOME_SQUARES.filter(
-        (sq) => sq !== blackHome && sq !== whiteHome
+        (sq) => sq !== blackHome && sq !== whiteHome,
       );
       if (available.length > 0) {
         newHomeSquare = available[Math.floor(Math.random() * available.length)];
@@ -98,7 +104,7 @@ function useHomeSystem({
     if (!newHomeSquare) return null;
 
     const occupyingPiece = currentPieces.find(
-      (piece) => piece.square === newHomeSquare
+      (piece) => piece.square === newHomeSquare,
     );
 
     return buildHomeClaimFromOccupant(homeColor, occupyingPiece, newHomeSquare);
@@ -108,8 +114,10 @@ function useHomeSystem({
   // ✅ NEW CLAIM CHECK
   // ╚══════════════════════════════╝
   function createNewHomeClaimIfNeeded(movedPiece, square) {
-    const whiteOnBlackHome = square === blackHome && movedPiece.color === "WHITE";
-    const blackOnWhiteHome = square === whiteHome && movedPiece.color === "BLACK";
+    const whiteOnBlackHome =
+      square === blackHome && movedPiece.color === "WHITE";
+    const blackOnWhiteHome =
+      square === whiteHome && movedPiece.color === "BLACK";
     const onOwnHome =
       (movedPiece.color === "WHITE" && square === whiteHome) ||
       (movedPiece.color === "BLACK" && square === blackHome);
@@ -134,7 +142,7 @@ function useHomeSystem({
           ...meta,
           claim,
           piece: movedPiece,
-        })
+        }),
       );
     }
   }
@@ -158,8 +166,9 @@ function useHomeSystem({
 
     const defended = movedPiece.square === pendingHomeAttack.square;
 
-    const lockedPiece =
-      currentPieces.find((p) => p.id === pendingHomeAttack.pieceId);
+    const lockedPiece = currentPieces.find(
+      (p) => p.id === pendingHomeAttack.pieceId,
+    );
 
     if (defended) {
       addMatchLog((meta) =>
@@ -167,13 +176,13 @@ function useHomeSystem({
           ...meta,
           claim: pendingHomeAttack,
           defenderPiece: movedPiece,
-        })
+        }),
       );
 
       sendToQueue(lockedPiece);
 
       const newPieces = currentPieces.filter(
-        (p) => p.id !== pendingHomeAttack.pieceId
+        (p) => p.id !== pendingHomeAttack.pieceId,
       );
 
       setPendingHomeAttack(null);
@@ -185,7 +194,7 @@ function useHomeSystem({
     let gameState = {
       whiteScore,
       blackScore,
-      TARGET_SCORE,
+      TARGET_SCORE: effectiveTarget,
       pendingHomeAttack,
       winner,
     };
@@ -196,17 +205,21 @@ function useHomeSystem({
       movedPiece,
     });
 
+    // Apply the claim's score changes to game state IMMEDIATELY so any
+    // follow-up checks (e.g. ALL_OUT) use the UPDATED scores, never the
+    // pre-claim snapshot.
+    setWhiteScore(gameState.whiteScore);
+    setBlackScore(gameState.blackScore);
+
     addMatchLog((meta) =>
       createHomeClaimSuccessLog({
         ...meta,
         claim: pendingHomeAttack,
         whiteScore: gameState.whiteScore,
         blackScore: gameState.blackScore,
-      })
+      }),
     );
 
-    setWhiteScore(gameState.whiteScore);
-    setBlackScore(gameState.blackScore);
     setPendingHomeAttack(gameState.pendingHomeAttack);
 
     if (gameState.winner) {
@@ -218,22 +231,34 @@ function useHomeSystem({
           winner: gameState.winner,
           whiteScore: gameState.whiteScore,
           blackScore: gameState.blackScore,
-        })
+        }),
       );
 
-      return { piecesAfterClaim: currentPieces, winnerFound: true };
+      return {
+        piecesAfterClaim: currentPieces,
+        winnerFound: true,
+        // Updated scores for ALL_OUT / follow-up logic.
+        nextWhiteScore: gameState.whiteScore,
+        nextBlackScore: gameState.blackScore,
+      };
     }
 
     sendToQueue(lockedPiece);
 
     let newPieces = currentPieces.filter(
-      (p) => p.id !== pendingHomeAttack.pieceId
+      (p) => p.id !== pendingHomeAttack.pieceId,
     );
 
     const nextClaim = relocateHome(pendingHomeAttack.homeOwner, newPieces);
     setPendingHomeAttack(nextClaim);
 
-    return { piecesAfterClaim: newPieces, winnerFound: false };
+    return {
+      piecesAfterClaim: newPieces,
+      winnerFound: false,
+      // Updated scores for ALL_OUT / follow-up logic.
+      nextWhiteScore: gameState.whiteScore,
+      nextBlackScore: gameState.blackScore,
+    };
   }
 
   return {
