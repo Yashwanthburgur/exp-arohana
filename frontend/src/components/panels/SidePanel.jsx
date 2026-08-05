@@ -119,7 +119,7 @@ function SidePanel({
     <div
       className={
         isGameStarted
-          ? "relative w-full rounded-xl bg-slate-950/50 px-2 py-1 shadow border border-white/[0.06]"
+          ? "relative w-full rounded-lg bg-slate-950/50 px-1.5 py-0.5 shadow border border-white/[0.06]"
           : "flex max-h-[96vh] w-full flex-col gap-2 overflow-hidden rounded-2xl bg-slate-950/40 p-2"
       }
     >
@@ -182,56 +182,56 @@ function SidePanel({
             </div>
           )}
 
-          {/* Strip row: color chip, score, moves, bench */}
-          <div className="flex items-center gap-2 w-full">
+          {/* Strip row: color chip, score, moves, bench — minimal gaps */}
+          <div className="flex items-center gap-1 w-full">
             {/* Color chip — highlights when this player must act */}
             <div
-              className={`flex-shrink-0 rounded-lg px-2 py-1.5 text-center shadow ${
+              className={`flex-shrink-0 rounded-md px-1.5 py-0.5 text-center shadow ${
                 color === "WHITE"
                   ? "bg-slate-100 text-slate-900"
                   : "bg-slate-800 text-slate-100"
               } ${isActing ? "ring-2 ring-[var(--color-brand-gold)]" : ""}`}
             >
-              <div className="text-[9px] font-bold uppercase tracking-wider opacity-70">
+              <div className="text-[8px] font-bold uppercase tracking-wider opacity-70">
                 {color === "WHITE" ? "White" : "Black"}
               </div>
             </div>
 
             {/* Divider */}
-            <div className="h-7 w-px bg-white/10 flex-shrink-0" />
+            <div className="h-6 w-px bg-white/10 flex-shrink-0" />
 
             {/* Score */}
             <div className="flex flex-col items-center flex-shrink-0">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                 Score
               </span>
-              <span className="text-base font-black leading-tight text-amber-300 tabular-nums">
+              <span className="text-sm font-black leading-tight text-amber-300 tabular-nums">
                 {score}
               </span>
             </div>
 
             {/* Divider */}
-            <div className="h-7 w-px bg-white/10 flex-shrink-0" />
+            <div className="h-6 w-px bg-white/10 flex-shrink-0" />
 
             {/* Moves */}
             <div className="flex flex-col items-center flex-shrink-0">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                 Moves
               </span>
-              <span className="text-base font-black leading-tight text-cyan-300 tabular-nums">
+              <span className="text-sm font-black leading-tight text-cyan-300 tabular-nums">
                 {moves}/{MOVE_LIMIT}
               </span>
             </div>
 
             {/* Divider */}
-            <div className="h-7 w-px bg-white/10 flex-shrink-0" />
+            <div className="h-6 w-px bg-white/10 flex-shrink-0" />
 
             {/* Bench label */}
             <div className="flex flex-col items-center flex-shrink-0">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                 Bench
               </span>
-              <span className="text-[10px] font-bold leading-tight text-slate-300">
+              <span className="text-[9px] font-bold leading-tight text-slate-300">
                 (Next)
               </span>
             </div>

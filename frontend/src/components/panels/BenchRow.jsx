@@ -101,7 +101,7 @@ function BenchRow({
                 `}
                 style={{
                   width: `${ITEM_WIDTH}px`,
-                  height: "52px",
+                  height: "40px",
                   flexShrink: 0,
                   minWidth: `${ITEM_WIDTH}px`,
                 }}
@@ -109,7 +109,7 @@ function BenchRow({
                 {/* Short name badge — styled like a CSS profile initial */}
                 <div
                   className={`
-                    w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-bold
+                    w-7 h-7 flex items-center justify-center rounded-full text-[10px] font-bold
                     ${badgeBg} ${badgeText}
                     ${isSelected ? "ring-2 ring-[var(--color-brand-gold)]" : ""}
                     shadow-sm

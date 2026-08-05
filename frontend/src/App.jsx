@@ -1865,7 +1865,7 @@ function App() {
       )}
 
       {isGameStarted ? (
-        <div className="mx-auto flex h-fit w-full max-w-[480px] flex-col gap-0.5 px-2 pt-14 md:pt-0">
+        <div className="mx-auto flex h-fit w-full max-w-[480px] flex-col gap-1 px-1 pt-12 md:pt-0">
           {/* Opponent panel (top) — black on top, like chess.com/lichess */}
           <section aria-label="Opponent panel" className="flex-shrink-0">
             <SidePanel

@@ -8,8 +8,8 @@ function MatchLogButton({ isGameStarted, matchLog, onOpen }) {
       type="button"
       onClick={onOpen}
       className="
-        flex w-full items-center gap-2 rounded-xl border border-slate-700
-        bg-slate-950/95 px-3 py-2 text-left text-xs shadow
+        flex w-full items-center gap-2 rounded-lg border border-slate-700
+        bg-slate-950/95 px-2 py-1 text-left text-[11px] shadow
         hover:border-cyan-400 transition-colors cursor-pointer
       "
     >
