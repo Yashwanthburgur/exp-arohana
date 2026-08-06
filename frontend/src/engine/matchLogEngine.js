@@ -29,6 +29,9 @@ export const LOG_TYPES = {
   SEIZURE_START: 'SEIZURE_START',
   SEIZURE_COMPLETE: 'SEIZURE_COMPLETE',
 
+  DRAW_OFFER: 'DRAW_OFFER',
+  RESIGN: 'RESIGN',
+
   SCORE: 'SCORE',
   WIN: 'WIN',
 }
@@ -476,6 +479,45 @@ export function createWinLog({
       BLACK: blackScore,
     },
     text: `${winner} wins. Final score WHITE ${whiteScore} - BLACK ${blackScore}.`,
+  })
+}
+
+export function createDrawOfferLog({
+  number,
+  turn,
+  phase,
+  offeredBy,
+}) {
+  return createLogEntry({
+    number,
+    turn,
+    phase,
+    type: LOG_TYPES.DRAW_OFFER,
+    actor: offeredBy,
+    text: `${offeredBy} offers a draw.`,
+  })
+}
+
+export function createResignLog({
+  number,
+  turn,
+  phase,
+  resignedBy,
+  winner,
+  whiteScore,
+  blackScore,
+}) {
+  return createLogEntry({
+    number,
+    turn,
+    phase,
+    type: LOG_TYPES.RESIGN,
+    actor: resignedBy,
+    scoreAfter: {
+      WHITE: whiteScore,
+      BLACK: blackScore,
+    },
+    text: `${resignedBy} resigns. ${winner} wins by resignation.`,
   })
 }
 

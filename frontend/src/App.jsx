@@ -39,6 +39,8 @@ import {
   createSeizureStartLog,
   createSeizureCompleteLog,
   createWinLog,
+  createDrawOfferLog,
+  createResignLog,
 } from "./engine/matchLogEngine.js";
 
 import { DEFAULT_VARIANT } from "./constants/variantConfig.js";
@@ -60,6 +62,9 @@ import useMatchSocket from "./hooks/useMatchSocket.js";
 import SidePanel from "./components/panels/SidePanel.jsx";
 import PreGameSetupPanel from "./components/panels/PreGameSetupPanel.jsx";
 import MatchLogButton from "./components/panels/MatchLogButton.jsx";
+import GameActionBar from "./components/panels/GameActionBar.jsx";
+import ConfirmActionModal from "./components/panels/ConfirmActionModal.jsx";
+import DrawOfferModal from "./components/panels/DrawOfferModal.jsx";
 import MatchLogModal from "./components/panels/MatchLogModal.jsx";
 import WinnerModal from "./components/panels/WinnerModal.jsx";
 import PromotionModal from "./components/panels/PromotionModal.jsx";
@@ -226,6 +231,18 @@ function App() {
   // duty it was did NOT complete their move. Resets on any completed move.
   // At 4 (WHITE→BLACK→WHITE→BLACK duty misses) the match is a DRAW.
   const [missedDutyCount, setMissedDutyCount] = useState(0);
+
+  // ╔══════════════════════╗
+  // ✅ GAME ACTION BAR STATE
+  // ╚══════════════════════╝
+  // drawOfferedBy: which color sent the offer (local simulated)
+  // drawOfferPending: offer is awaiting accept/decline
+  // confirmAction: { type: 'home' | 'resign' } | null
+  // toast: transient "coming soon" message
+  const [drawOfferedBy, setDrawOfferedBy] = useState(null);
+  const [drawOfferPending, setDrawOfferPending] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // Ready countdown for the DEPLOY stage: once setup is confirmed, both
   // players have 30s to press READY. If either hasn't, the match is
@@ -1154,6 +1171,90 @@ function App() {
     setOriginalBlackArmy([]);
   }
 
+  // ╔══════════════════════╗
+  // ✅ GAME ACTION BAR HANDLERS
+  // ╚══════════════════════╝
+  function showToast(message) {
+    setToast(message);
+    setTimeout(() => setToast(null), 2000);
+  }
+
+  // End the match with a given winner ("WHITE" | "BLACK" | "DRAW").
+  // Records the result in the match log and freezes the game.
+  function endMatch(winnerColor, { resignedBy = null } = {}) {
+    if (winner) return;
+
+    setSeizureAction(null);
+    setPendingSpawnColor(null);
+    setPendingSpawnQueue([]);
+    setPendingInitialSupportColor(null);
+    setSelectedPieceId(null);
+    setLegalTargets([]);
+    setDrawOfferPending(false);
+    setDrawOfferedBy(null);
+
+    if (resignedBy) {
+      addMatchLog((meta) =>
+        createResignLog({
+          ...meta,
+          resignedBy,
+          winner: winnerColor,
+          whiteScore,
+          blackScore,
+        }),
+      );
+    }
+
+    setWinner(winnerColor);
+  }
+
+  // Draw flow (local pass-and-play: the "opponent" is the other side).
+  function offerDraw() {
+    if (winner || !isGameStarted) return;
+    if (drawOfferPending) {
+      showToast("Draw offer already sent");
+      return;
+    }
+
+    const localColor = onlineMatch?.assignedColor || "WHITE";
+    setDrawOfferedBy(localColor);
+    setDrawOfferPending(true);
+
+    addMatchLog((meta) =>
+      createDrawOfferLog({
+        ...meta,
+        offeredBy: localColor,
+      }),
+    );
+  }
+
+  function acceptDraw() {
+    if (!drawOfferPending) return;
+    endMatch("DRAW");
+  }
+
+  function declineDraw() {
+    setDrawOfferPending(false);
+    setDrawOfferedBy(null);
+  }
+
+  // Home — surrender & exit to menu.
+  function confirmHomeExit() {
+    const localColor = onlineMatch?.assignedColor || "WHITE";
+    const opponent = localColor === "WHITE" ? "BLACK" : "WHITE";
+    endMatch(opponent, { resignedBy: localColor });
+    setConfirmAction(null);
+    setCurrentScreen("MENU");
+  }
+
+  // Resign — end match as a loss, show WinnerModal.
+  function confirmResign() {
+    const localColor = onlineMatch?.assignedColor || "WHITE";
+    const opponent = localColor === "WHITE" ? "BLACK" : "WHITE";
+    endMatch(opponent, { resignedBy: localColor });
+    setConfirmAction(null);
+  }
+
   function enterInviteMatch(room) {
     resetGame();
     setOnlineMatch(room);
@@ -1817,16 +1918,8 @@ function App() {
 
   return (
     <main className="relative h-dvh w-full bg-slate-900 text-white overflow-hidden flex flex-col">
-      {/* Back to main menu header button in game */}
-      <div className="absolute top-4 right-4 z-40">
-        <button
-          type="button"
-          onClick={() => setCurrentScreen("MENU")}
-          className="rounded-lg bg-slate-800/80 border border-slate-700/80 px-3 py-1.5 text-xs font-bold hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
-        >
-          Exit to Menu
-        </button>
-      </div>
+      {/* Top-right exit removed — Home action in the bottom bar handles
+          surrender & exit. */}
 
       {/* ═══════════════════════════════════════════
           STAGE 1 — PRE-MATCH SETUP
@@ -1878,43 +1971,45 @@ function App() {
         >
           {/* Opponent panel (top) — black on top, like chess.com/lichess */}
           <div className="flex flex-col rounded-lg border border-white/[0.06]">
-          <section aria-label="Opponent panel" className="flex-shrink-0">
-            <SidePanel
-              color={localColor === "WHITE" ? "BLACK" : "WHITE"}
-              army={localColor === "WHITE" ? blackArmy : whiteArmy}
-              isReady={localColor === "WHITE" ? blackReady : whiteReady}
-              setReady={localColor === "WHITE" ? setBlackReady : setWhiteReady}
-              score={localColor === "WHITE" ? blackScore : whiteScore}
-              moves={localColor === "WHITE" ? blackMoves : whiteMoves}
-              MOVE_LIMIT={MOVE_LIMIT}
-              isGameStarted={isGameStarted}
-              isWhitePanel={localColor !== "WHITE"}
-              whiteArmy={whiteArmy}
-              blackArmy={blackArmy}
-              rollPiece={rollPiece}
-              autoRollFullArmy={autoRollFullArmy}
-              REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
-              moveUp={moveUp}
-              moveDown={moveDown}
-              getQueueLabel={getQueueLabel}
-              calculateMaterialTotal={calculateMaterialTotal}
-              timerEnabled={timerEnabled}
-              activeTimerColor={activeTimerColor}
-              timerState={timerState}
-              hasReserveEnabled={hasReserveEnabled}
-              formatClock={formatClock}
-              seizureAction={seizureAction}
-              timeoutStatus={timeoutStatus}
-              pendingInitialSupportColor={pendingInitialSupportColor}
-              initialSupportQueues={initialSupportQueues}
-              pendingSpawnColor={pendingSpawnColor}
-              getSpawnTargets={getSpawnTargets}
-              pendingHomeAttack={pendingHomeAttack}
-              isDraftComplete={isDraftComplete}
-              readOnly={true}
-              bannerOnBottom={true}
-            />
-          </section>
+            <section aria-label="Opponent panel" className="flex-shrink-0">
+              <SidePanel
+                color={localColor === "WHITE" ? "BLACK" : "WHITE"}
+                army={localColor === "WHITE" ? blackArmy : whiteArmy}
+                isReady={localColor === "WHITE" ? blackReady : whiteReady}
+                setReady={
+                  localColor === "WHITE" ? setBlackReady : setWhiteReady
+                }
+                score={localColor === "WHITE" ? blackScore : whiteScore}
+                moves={localColor === "WHITE" ? blackMoves : whiteMoves}
+                MOVE_LIMIT={MOVE_LIMIT}
+                isGameStarted={isGameStarted}
+                isWhitePanel={localColor !== "WHITE"}
+                whiteArmy={whiteArmy}
+                blackArmy={blackArmy}
+                rollPiece={rollPiece}
+                autoRollFullArmy={autoRollFullArmy}
+                REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
+                moveUp={moveUp}
+                moveDown={moveDown}
+                getQueueLabel={getQueueLabel}
+                calculateMaterialTotal={calculateMaterialTotal}
+                timerEnabled={timerEnabled}
+                activeTimerColor={activeTimerColor}
+                timerState={timerState}
+                hasReserveEnabled={hasReserveEnabled}
+                formatClock={formatClock}
+                seizureAction={seizureAction}
+                timeoutStatus={timeoutStatus}
+                pendingInitialSupportColor={pendingInitialSupportColor}
+                initialSupportQueues={initialSupportQueues}
+                pendingSpawnColor={pendingSpawnColor}
+                getSpawnTargets={getSpawnTargets}
+                pendingHomeAttack={pendingHomeAttack}
+                isDraftComplete={isDraftComplete}
+                readOnly={true}
+                bannerOnBottom={true}
+              />
+            </section>
           </div>
 
           {/* Board (center) — hero; launch-row gaps show turn/reserve clocks */}
@@ -1940,52 +2035,66 @@ function App() {
           {/* Player panel (bottom) + match log — FUSED into one component
               (no gap between them) */}
           <div className="flex flex-col rounded-lg border border-white/[0.06]">
-          <section aria-label="Your player panel" className="flex-shrink-0">
-            <SidePanel
-              color={localColor}
-              army={localColor === "WHITE" ? whiteArmy : blackArmy}
-              isReady={localColor === "WHITE" ? whiteReady : blackReady}
-              setReady={localColor === "WHITE" ? setWhiteReady : setBlackReady}
-              score={localColor === "WHITE" ? whiteScore : blackScore}
-              moves={localColor === "WHITE" ? whiteMoves : blackMoves}
-              MOVE_LIMIT={MOVE_LIMIT}
-              isGameStarted={isGameStarted}
-              isWhitePanel={localColor === "WHITE"}
-              whiteArmy={whiteArmy}
-              blackArmy={blackArmy}
-              rollPiece={rollPiece}
-              autoRollFullArmy={autoRollFullArmy}
-              REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
-              moveUp={moveUp}
-              moveDown={moveDown}
-              getQueueLabel={getQueueLabel}
-              calculateMaterialTotal={calculateMaterialTotal}
-              timerEnabled={timerEnabled}
-              activeTimerColor={activeTimerColor}
-              timerState={timerState}
-              hasReserveEnabled={hasReserveEnabled}
-              formatClock={formatClock}
-              seizureAction={seizureAction}
-              timeoutStatus={timeoutStatus}
-              pendingInitialSupportColor={pendingInitialSupportColor}
-              initialSupportQueues={initialSupportQueues}
-              pendingSpawnColor={pendingSpawnColor}
-              getSpawnTargets={getSpawnTargets}
-              pendingHomeAttack={pendingHomeAttack}
-              isDraftComplete={isDraftComplete}
-              readOnly={false}
-            />
-          </section>
+            <section aria-label="Your player panel" className="flex-shrink-0">
+              <SidePanel
+                color={localColor}
+                army={localColor === "WHITE" ? whiteArmy : blackArmy}
+                isReady={localColor === "WHITE" ? whiteReady : blackReady}
+                setReady={
+                  localColor === "WHITE" ? setWhiteReady : setBlackReady
+                }
+                score={localColor === "WHITE" ? whiteScore : blackScore}
+                moves={localColor === "WHITE" ? whiteMoves : blackMoves}
+                MOVE_LIMIT={MOVE_LIMIT}
+                isGameStarted={isGameStarted}
+                isWhitePanel={localColor === "WHITE"}
+                whiteArmy={whiteArmy}
+                blackArmy={blackArmy}
+                rollPiece={rollPiece}
+                autoRollFullArmy={autoRollFullArmy}
+                REQUIRED_DRAFT_ROLLS={REQUIRED_DRAFT_ROLLS}
+                moveUp={moveUp}
+                moveDown={moveDown}
+                getQueueLabel={getQueueLabel}
+                calculateMaterialTotal={calculateMaterialTotal}
+                timerEnabled={timerEnabled}
+                activeTimerColor={activeTimerColor}
+                timerState={timerState}
+                hasReserveEnabled={hasReserveEnabled}
+                formatClock={formatClock}
+                seizureAction={seizureAction}
+                timeoutStatus={timeoutStatus}
+                pendingInitialSupportColor={pendingInitialSupportColor}
+                initialSupportQueues={initialSupportQueues}
+                pendingSpawnColor={pendingSpawnColor}
+                getSpawnTargets={getSpawnTargets}
+                pendingHomeAttack={pendingHomeAttack}
+                isDraftComplete={isDraftComplete}
+                readOnly={false}
+              />
+            </section>
 
-          {/* Existing Match Log button — placed at the bottom, single row,
+            {/* Existing Match Log button — placed at the bottom, single row,
               shows the latest event; clicking opens the full match log modal */}
-          <div className="flex-shrink-0">
-            <MatchLogButton
-              isGameStarted={isGameStarted}
-              matchLog={matchLog}
-              onOpen={openMatchLog}
-            />
+            <div className="flex-shrink-0">
+              <MatchLogButton
+                isGameStarted={isGameStarted}
+                matchLog={matchLog}
+                onOpen={openMatchLog}
+              />
+            </div>
           </div>
+
+          {/* Bottom action bar — Home | Chat | Learn | Draw | Resign */}
+          <div className="flex-shrink-0">
+            <GameActionBar
+              onHome={() => setConfirmAction({ type: "home" })}
+              onChat={() => showToast("Chat coming soon")}
+              onLearn={() => showToast("Academy coming soon")}
+              onDraw={offerDraw}
+              onResign={() => setConfirmAction({ type: "resign" })}
+              drawOfferPending={drawOfferPending}
+            />
           </div>
         </div>
       ) : setupConfirmed ? (
@@ -2105,6 +2214,49 @@ function App() {
         onViewLog={openMatchLog}
         onRestart={resetGame}
       />
+
+      {/* Draw offer modal — accept / decline */}
+      <DrawOfferModal
+        open={drawOfferPending && !winner}
+        opponentName={
+          drawOfferedBy
+            ? drawOfferedBy === "WHITE"
+              ? "White"
+              : "Black"
+            : "Opponent"
+        }
+        onAccept={acceptDraw}
+        onDecline={declineDraw}
+      />
+
+      {/* Home / Resign confirmation */}
+      <ConfirmActionModal
+        open={confirmAction !== null && !winner}
+        title={
+          confirmAction?.type === "home"
+            ? "Surrender & Exit?"
+            : "Resign?"
+        }
+        message={
+          confirmAction?.type === "home"
+            ? "This will end the match as a loss and return you to the main menu."
+            : "This will end the match as a loss."
+        }
+        confirmLabel={
+          confirmAction?.type === "home" ? "Surrender & Exit" : "Resign"
+        }
+        onConfirm={
+          confirmAction?.type === "home" ? confirmHomeExit : confirmResign
+        }
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      {/* Transient toast (Chat/Learn placeholders) */}
+      {toast && (
+        <div className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 border border-white/15 px-4 py-2 text-sm font-bold text-white shadow-xl animate-fade-in">
+          {toast}
+        </div>
+      )}
 
       <MatchLogModal
         isOpen={isMatchLogOpen}
