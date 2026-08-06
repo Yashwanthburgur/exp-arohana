@@ -131,10 +131,16 @@ function SidePanel({
 
       {isGameStarted ? (
         <div className="flex w-full flex-col">
-          {/* Status banner — inline row INSIDE the panel (never clipped).
-              Always visible for BOTH black (top) and white (bottom). */}
+          {/* Status banner — absolute overlay in the gap between the
+              panel and the board. NEVER expands the panel (fixed size,
+              single-page view preserved). Top panel anchors below its
+              bottom edge; bottom panel anchors above its top edge. */}
           {isActing && (
-            <div className="mb-0.5 flex justify-center">
+            <div
+              className={`pointer-events-none absolute left-0 right-0 z-30 flex justify-center ${
+                bannerOnBottom ? "-bottom-4" : "-top-4"
+              }`}
+            >
               <div className="flex items-center gap-1.5 rounded-full bg-slate-950/95 border border-white/10 px-2.5 py-0.5 shadow-lg">
                 {seizureAction && seizureAction.controller === color && (
                   <span className="text-[10px] font-black uppercase tracking-wide text-red-400">
