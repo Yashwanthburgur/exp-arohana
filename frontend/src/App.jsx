@@ -1865,8 +1865,19 @@ function App() {
       )}
 
       {isGameStarted ? (
-        <div className="mx-auto flex h-fit w-full max-w-[480px] flex-col gap-1 px-1 pt-12 md:pt-0">
+        <div
+          className="mx-auto flex h-fit w-full max-w-full flex-col pt-12 md:pt-0"
+          style={{
+            // Same square size as the board, so the panels are EXACTLY as
+            // wide as the board grid (9 squares; rank labels live in a
+            // separate left gutter outside the grid).
+            "--sq":
+              "clamp(1.4rem, min(7.5vw, calc((100vh - 210px) / 11)), 3rem)",
+            maxWidth: "calc(9 * var(--sq))",
+          }}
+        >
           {/* Opponent panel (top) — black on top, like chess.com/lichess */}
+          <div className="flex flex-col rounded-lg border border-white/[0.06]">
           <section aria-label="Opponent panel" className="flex-shrink-0">
             <SidePanel
               color={localColor === "WHITE" ? "BLACK" : "WHITE"}
@@ -1904,6 +1915,7 @@ function App() {
               bannerOnBottom={true}
             />
           </section>
+          </div>
 
           {/* Board (center) — hero; launch-row gaps show turn/reserve clocks */}
           <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -1925,7 +1937,9 @@ function App() {
             />
           </div>
 
-          {/* Player panel (bottom) — white/player on bottom */}
+          {/* Player panel (bottom) + match log — FUSED into one component
+              (no gap between them) */}
+          <div className="flex flex-col rounded-lg border border-white/[0.06]">
           <section aria-label="Your player panel" className="flex-shrink-0">
             <SidePanel
               color={localColor}
@@ -1971,6 +1985,7 @@ function App() {
               matchLog={matchLog}
               onOpen={openMatchLog}
             />
+          </div>
           </div>
         </div>
       ) : setupConfirmed ? (

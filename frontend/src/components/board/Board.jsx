@@ -104,99 +104,109 @@ function Board({
 
   return (
     <div
-      className="flex flex-col items-center max-w-full overflow-hidden"
+      className="flex flex-col items-center max-w-full"
       style={{ "--sq": squareSize }}
     >
-      {/* Top launch row - rank 10/0 */}
-      <div className="grid grid-cols-[20px_repeat(9,var(--sq))]">
-        <div className="flex items-center justify-center text-[10px] text-[var(--color-text-muted)]/50 font-medium">
-          {isFlipped ? 0 : 10}
-        </div>
-
-        {/* Left gap (3 empty squares) → turn timer */}
-        <div className="col-span-3 h-[var(--sq)]">
-          <GapTimer
-            label="Turn"
-            seconds={topTurn}
-            isActive={activeTimerColor === topColor}
-          />
-        </div>
-
-        {/* Launch pads (d/e/f) */}
-        {displayLaunchFiles.map((file, i) =>
-          renderSquare(`${file}${topRank}`, topRank, 3 + i),
-        )}
-
-        {/* Right gap (3 empty squares) → reserve timer */}
-        <div className="col-span-3 h-[var(--sq)]">
-          <GapTimer
-            label="Rsv"
-            seconds={topReserve}
-            isActive={activeTimerColor === topColor}
-            hasValue={reserveEnabled}
-          />
-        </div>
-      </div>
-
-      {/* Main grid */}
-      <div>
-        {displayRanks.map((rank) => (
-          <div key={rank} className="grid grid-cols-[20px_repeat(9,var(--sq))]">
-            <div className="flex items-center justify-center text-[10px] text-[var(--color-text-muted)]/50 font-medium">
+      {/* Rank label gutter — outside the board, like chess.com/lichess.
+          Uses the same --sq so it aligns with each row. */}
+      <div className="flex">
+        {/* Left gutter: rank numbers for main rows + spacers for top/bottom rows */}
+        <div className="flex w-4 flex-col">
+          <div className="h-[var(--sq)]" /> {/* top launch row spacer */}
+          {displayRanks.map((rank) => (
+            <div
+              key={rank}
+              className="flex h-[var(--sq)] items-center justify-center pr-0.5 text-[10px] font-medium text-[var(--color-text-muted)]/50"
+            >
               {rank}
             </div>
+          ))}
+          <div className="h-[var(--sq)]" /> {/* bottom launch row spacer */}
+        </div>
 
-            {displayFiles.map((file, fileIndex) => {
-              const coordinate = `${file}${rank}`;
-              return renderSquare(coordinate, rank, fileIndex);
-            })}
+        {/* Board grid — 9 squares wide (labels removed from inside) */}
+        <div className="flex flex-col">
+          {/* Top launch row - rank 10/0 */}
+          <div className="grid grid-cols-[repeat(9,var(--sq))]">
+            {/* Left gap (3 empty squares) → turn timer */}
+            <div className="col-span-3 h-[var(--sq)]">
+              <GapTimer
+                label="Turn"
+                seconds={topTurn}
+                isActive={activeTimerColor === topColor}
+              />
+            </div>
+
+            {/* Launch pads (d/e/f) */}
+            {displayLaunchFiles.map((file, i) =>
+              renderSquare(`${file}${topRank}`, topRank, 3 + i),
+            )}
+
+            {/* Right gap (3 empty squares) → reserve timer */}
+            <div className="col-span-3 h-[var(--sq)]">
+              <GapTimer
+                label="Rsv"
+                seconds={topReserve}
+                isActive={activeTimerColor === topColor}
+                hasValue={reserveEnabled}
+              />
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Bottom launch row - rank 0/10 */}
-      <div className="grid grid-cols-[20px_repeat(9,var(--sq))]">
-        <div className="flex items-center justify-center text-[10px] text-[var(--color-text-muted)]/50 font-medium">
-          {isFlipped ? 10 : 0}
-        </div>
-
-        {/* Left gap (3 empty squares) → turn timer */}
-        <div className="col-span-3 h-[var(--sq)]">
-          <GapTimer
-            label="Turn"
-            seconds={bottomTurn}
-            isActive={activeTimerColor === bottomColor}
-          />
-        </div>
-
-        {/* Launch pads (d/e/f) */}
-        {displayLaunchFiles.map((file, i) =>
-          renderSquare(`${file}${bottomRank}`, bottomRank, 3 + i),
-        )}
-
-        {/* Right gap (3 empty squares) → reserve timer */}
-        <div className="col-span-3 h-[var(--sq)]">
-          <GapTimer
-            label="Rsv"
-            seconds={bottomReserve}
-            isActive={activeTimerColor === bottomColor}
-            hasValue={reserveEnabled}
-          />
-        </div>
-      </div>
-
-      {/* File labels */}
-      <div className="mt-0.5 grid grid-cols-[20px_repeat(9,var(--sq))]">
-        <div />
-
-        {displayFiles.map((file) => (
-          <div
-            key={file}
-            className="text-center text-[10px] text-[var(--color-text-muted)]/50 font-medium uppercase"
-          >
-            {file}
+          {/* Main grid */}
+          <div>
+            {displayRanks.map((rank) => (
+              <div
+                key={rank}
+                className="grid grid-cols-[repeat(9,var(--sq))]"
+              >
+                {displayFiles.map((file, fileIndex) => {
+                  const coordinate = `${file}${rank}`;
+                  return renderSquare(coordinate, rank, fileIndex);
+                })}
+              </div>
+            ))}
           </div>
-        ))}
+
+          {/* Bottom launch row - rank 0/10 */}
+          <div className="grid grid-cols-[repeat(9,var(--sq))]">
+            {/* Left gap (3 empty squares) → turn timer */}
+            <div className="col-span-3 h-[var(--sq)]">
+              <GapTimer
+                label="Turn"
+                seconds={bottomTurn}
+                isActive={activeTimerColor === bottomColor}
+              />
+            </div>
+
+            {/* Launch pads (d/e/f) */}
+            {displayLaunchFiles.map((file, i) =>
+              renderSquare(`${file}${bottomRank}`, bottomRank, 3 + i),
+            )}
+
+            {/* Right gap (3 empty squares) → reserve timer */}
+            <div className="col-span-3 h-[var(--sq)]">
+              <GapTimer
+                label="Rsv"
+                seconds={bottomReserve}
+                isActive={activeTimerColor === bottomColor}
+                hasValue={reserveEnabled}
+              />
+            </div>
+          </div>
+
+          {/* File labels */}
+          <div className="mt-0.5 grid grid-cols-[repeat(9,var(--sq))]">
+            {displayFiles.map((file) => (
+              <div
+                key={file}
+                className="text-center text-[10px] text-[var(--color-text-muted)]/50 font-medium uppercase"
+              >
+                {file}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

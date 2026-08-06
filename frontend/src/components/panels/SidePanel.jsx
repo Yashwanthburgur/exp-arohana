@@ -119,7 +119,7 @@ function SidePanel({
     <div
       className={
         isGameStarted
-          ? "relative w-full rounded-lg bg-slate-950/50 px-1.5 py-0.5 shadow border border-white/[0.06]"
+          ? "relative w-full bg-slate-950/50 px-1.5 py-0.5"
           : "flex max-h-[96vh] w-full flex-col gap-2 overflow-hidden rounded-2xl bg-slate-950/40 p-2"
       }
     >
@@ -131,19 +131,11 @@ function SidePanel({
 
       {isGameStarted ? (
         <div className="flex w-full flex-col">
-          {/* Status banner — absolute overlay anchored at the panel's
-              board-facing edge (below the bench, above the board).
-              No layout shift, no page distortion — floats over the gap
-              for BOTH black (top) and white (bottom). The top panel's
-              board-facing edge is its bottom; the bottom panel's is its
-              top — controlled via the bannerOnBottom prop. */}
+          {/* Status banner — inline row INSIDE the panel (never clipped).
+              Always visible for BOTH black (top) and white (bottom). */}
           {isActing && (
-            <div
-              className={`pointer-events-none absolute left-0 right-0 z-30 flex justify-center ${
-                bannerOnBottom ? "-bottom-4" : "-top-4"
-              }`}
-            >
-              <div className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-slate-950/95 border border-white/10 px-2.5 py-0.5 shadow-lg">
+            <div className="mb-0.5 flex justify-center">
+              <div className="flex items-center gap-1.5 rounded-full bg-slate-950/95 border border-white/10 px-2.5 py-0.5 shadow-lg">
                 {seizureAction && seizureAction.controller === color && (
                   <span className="text-[10px] font-black uppercase tracking-wide text-red-400">
                     ⚡ Controlling opponent move

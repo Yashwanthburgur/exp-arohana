@@ -8,9 +8,9 @@ function MatchLogButton({ isGameStarted, matchLog, onOpen }) {
       type="button"
       onClick={onOpen}
       className="
-        flex w-full items-center gap-2 rounded-lg border border-slate-700
-        bg-slate-950/95 px-2 py-1 text-left text-[11px] shadow
-        hover:border-cyan-400 transition-colors cursor-pointer
+        flex w-full items-center gap-2 rounded-b-lg border-t border-slate-700
+        bg-slate-950/95 px-2 py-1 text-left text-[11px]
+        hover:bg-slate-900 transition-colors cursor-pointer
       "
     >
       <span className="text-lg">📝</span>
