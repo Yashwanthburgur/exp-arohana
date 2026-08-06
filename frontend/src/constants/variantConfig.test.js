@@ -15,14 +15,16 @@ describe("variantConfig", () => {
   describe("CLASSIC variant pools", () => {
     const pools = VARIANT_TIER_POOLS[VARIANTS.CLASSIC];
 
-    it("has WARRIOR and GAJASHVA in S tier", () => {
+    it("has WARRIOR, AIRAVATA and JATAYU in S tier", () => {
       expect(pools.S).toContain("WARRIOR");
-      expect(pools.S).toContain("GAJASHVA");
+      expect(pools.S).toContain("AIRAVATA");
+      expect(pools.S).toContain("JATAYU");
     });
 
-    it("does NOT contain LANCER (renamed to GAJASHVA)", () => {
+    it("does NOT contain LANCER or GAJASHVA", () => {
       Object.values(pools).forEach((tier) => {
         expect(tier).not.toContain("LANCER");
+        expect(tier).not.toContain("GAJASHVA");
       });
     });
 

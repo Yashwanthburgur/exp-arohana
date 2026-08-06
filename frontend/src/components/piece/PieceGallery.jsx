@@ -1,10 +1,11 @@
-import PiecePreview from './PiecePreview.jsx'
-import { PIECE_TYPES } from '../../engine/pieceCatalog.js'
+import PiecePreview from "./PiecePreview.jsx";
+import { PIECE_TYPES } from "../../engine/pieceCatalog.js";
 
 const pieceOrder = [
   // S tier Classic
   PIECE_TYPES.WARRIOR,
-  PIECE_TYPES.GAJASHVA,
+  PIECE_TYPES.AIRAVATA,
+  PIECE_TYPES.JATAYU,
   // S tier Magical
   PIECE_TYPES.NINJA,
   PIECE_TYPES.SAGITTARIUS,
@@ -32,18 +33,14 @@ const pieceOrder = [
   PIECE_TYPES.SNAKE,
   PIECE_TYPES.BULL,
   PIECE_TYPES.SOLDIER,
-]
+];
 
 function PieceGallery() {
   return (
     <aside className="flex max-h-[90vh] w-72 flex-col gap-2 overflow-y-auto rounded-2xl bg-slate-950/80 p-4 shadow-2xl">
-      <h2 className="text-lg font-bold text-slate-100">
-        Characters
-      </h2>
+      <h2 className="text-lg font-bold text-slate-100">Characters</h2>
 
-      <p className="text-xs text-slate-400">
-        Piece catalog preview
-      </p>
+      <p className="text-xs text-slate-400">Piece catalog preview</p>
 
       <div className="mt-2 flex flex-col gap-2">
         {pieceOrder.map((type) => (
@@ -51,7 +48,7 @@ function PieceGallery() {
         ))}
       </div>
     </aside>
-  )
+  );
 }
 
-export default PieceGallery
+export default PieceGallery;

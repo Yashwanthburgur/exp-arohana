@@ -44,7 +44,8 @@ const ALL_TYPES = [
   "WARRIOR",
   "SAGITTARIUS",
   "NINJA",
-  "GAJASHVA",
+  "AIRAVATA",
+  "JATAYU",
   "ELEPHANT",
   "RHINO",
   "GIRAFFE",
@@ -484,11 +485,11 @@ describe("HORSE moves", () => {
 });
 
 // ────────────────────────────────────────────────────────
-// GAJASHVA — Elephant + Horse
+// AIRAVATA — Elephant + Horse
 // ────────────────────────────────────────────────────────
-describe("GAJASHVA moves", () => {
+describe("AIRAVATA moves", () => {
   it("combines Elephant and Horse targets — exactly 26 from e5 (incl. launch pads)", () => {
-    const g = makePiece("GAJASHVA", "WHITE", "e5");
+    const g = makePiece("AIRAVATA", "WHITE", "e5");
     const targets = getLegalTargets(g, [g]);
     expect(sorted(targets)).toEqual([
       "a5",
@@ -521,13 +522,99 @@ describe("GAJASHVA moves", () => {
   });
 
   it("horse part leaps over a friendly blocker on the rook ray", () => {
-    const g = makePiece("GAJASHVA", "WHITE", "e5");
+    const g = makePiece("AIRAVATA", "WHITE", "e5");
     const ally = makePiece("BULL", "WHITE", "e7");
     const targets = getLegalTargets(g, [g, ally]);
     const squares = squaresOf(targets);
     expect(squares).not.toContain("e7");
     expect(squares).not.toContain("e8"); // rook ray blocked
     expect(squares).toContain("f7"); // knight leap still works
+  });
+});
+
+// ────────────────────────────────────────────────────────
+// JATAYU — Camel (Bishop slide) + Horse
+// ────────────────────────────────────────────────────────
+describe("JATAYU moves", () => {
+  it("combines Camel diagonals and Horse leaps — exactly 24 from e5", () => {
+    const j = makePiece("JATAYU", "WHITE", "e5");
+    const targets = getLegalTargets(j, [j]);
+    expect(sorted(targets)).toEqual([
+      "a1",
+      "a9",
+      "b2",
+      "b8",
+      "c3",
+      "c4",
+      "c6",
+      "c7",
+      "d3",
+      "d4",
+      "d6",
+      "d7",
+      "f3",
+      "f4",
+      "f6",
+      "f7",
+      "g3",
+      "g4",
+      "g6",
+      "g7",
+      "h2",
+      "h8",
+      "i1",
+      "i9",
+    ]);
+  });
+
+  it("Camel slide is blocked by a friendly piece on the diagonal", () => {
+    const j = makePiece("JATAYU", "WHITE", "e5");
+    const ally = makePiece("BULL", "WHITE", "g7");
+    const targets = getLegalTargets(j, [j, ally]);
+    const squares = squaresOf(targets);
+    // g7 blocks the SE diagonal: h8 and i9 unreachable
+    expect(squares).not.toContain("g7");
+    expect(squares).not.toContain("h8");
+    expect(squares).not.toContain("i9");
+  });
+
+  it("Horse leap still works past a friendly blocker", () => {
+    const j = makePiece("JATAYU", "WHITE", "e5");
+    const ally = makePiece("BULL", "WHITE", "f6");
+    const targets = getLegalTargets(j, [j, ally]);
+    const squares = squaresOf(targets);
+    // f6 is a Horse target (blocked), but f7/g6/d7 etc. remain via jumps
+    expect(squares).not.toContain("f6");
+    expect(squares).toContain("f7");
+    expect(squares).toContain("g6");
+    expect(squares).toContain("d7");
+  });
+
+  it("respects board limits at the corner — 13 from a1", () => {
+    const j = makePiece("JATAYU", "WHITE", "a1");
+    const targets = getLegalTargets(j, [j]);
+    // Camel diagonals from a1: b2, c3, d4, e5, f6, g7, h8, i9
+    // Horse from a1: b3, c2
+    expect(sorted(targets)).toEqual([
+      "b2",
+      "b3",
+      "c2",
+      "c3",
+      "d4",
+      "e5",
+      "f6",
+      "g7",
+      "h8",
+      "i9",
+    ]);
+  });
+
+  it("captures an enemy that blocks the Camel diagonal and stops there", () => {
+    const j = makePiece("JATAYU", "WHITE", "e5");
+    const enemy = makePiece("BULL", "BLACK", "g7");
+    const targets = getLegalTargets(j, [j, enemy]);
+    expect(kindsOf(targets, "g7")).toContain("capture");
+    expect(squaresOf(targets)).not.toContain("h8"); // ray stops at capture
   });
 });
 

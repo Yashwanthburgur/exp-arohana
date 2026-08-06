@@ -286,10 +286,17 @@ function getHorseMoves(piece, pieces) {
 }
 
 // ╔═════════════════════╗
-// ✅ GAJASHVA — ELEPHANT (ROOK, NO JUMP) + HORSE (KNIGHT LEAP)
+// ✅ AIRAVATA — ELEPHANT (ROOK, NO JUMP) + HORSE (KNIGHT LEAP)
 // ╚═════════════════════╝
-function getGajashvaMoves(piece, pieces) {
+function getAiravataMoves(piece, pieces) {
   return [...getElephantMoves(piece, pieces), ...getHorseMoves(piece, pieces)];
+}
+
+// ╔═════════════════════╗
+// ✅ JATAYU — CAMEL (BISHOP SLIDE, NO JUMP) + HORSE (KNIGHT LEAP)
+// ╚═════════════════════╝
+function getJatayuMoves(piece, pieces) {
+  return [...getCamelMoves(piece, pieces), ...getHorseMoves(piece, pieces)];
 }
 
 // ╔══════════════════════╗
@@ -824,8 +831,12 @@ export function getLegalTargets(piece, pieces, context = {}) {
       rawTargets = getSagittariusMoves(piece, pieces);
       break;
 
-    case "GAJASHVA":
-      rawTargets = getGajashvaMoves(piece, pieces);
+    case "AIRAVATA":
+      rawTargets = getAiravataMoves(piece, pieces);
+      break;
+
+    case "JATAYU":
+      rawTargets = getJatayuMoves(piece, pieces);
       break;
 
     case "ELEPHANT":
