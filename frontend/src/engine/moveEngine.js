@@ -3,6 +3,7 @@ import {
   positionToSquare,
   isPlayableSquare,
 } from "./coordinates.js";
+import { HOME_SQUARES } from "../constants/boardConfig.js";
 
 // ╔══════════════════════╗
 // ✅ BASIC BOARD HELPERS
@@ -615,9 +616,9 @@ function getAntelopeMoves(piece, pieces, context = {}) {
   const teamMoveCount = context.teamMoveCount ?? 0;
   const moveLimit = context.moveLimit ?? 8;
 
-  // Swap is unavailable on the final move of the eight-move cycle
-  // (teamMoveCount 7 → move 8 / arrival move).
-  const isFinalTwoMoves = teamMoveCount >= moveLimit - 1;
+  // Swap is unavailable on the final two moves of the eight-move cycle
+  // (teamMoveCount 6 → move 7, teamMoveCount 7 → move 8 / arrival move).
+  const isFinalTwoMoves = teamMoveCount >= moveLimit - 2;
 
   // If horns are already used, Antelope only has normal movement.
   if (piece.powerUsed) {
@@ -637,6 +638,11 @@ function getAntelopeMoves(piece, pieces, context = {}) {
 
       // Wolf cannot be detected by Antelope radar and cannot be swapped.
       if (otherPiece.type === "WOLF") return false;
+
+      // A swap can never land on a home square. Homes must be defended by
+      // being physically near them — the Antelope cannot teleport onto a
+      // home (d5/e5/f5) from far away to claim or defend it.
+      if (HOME_SQUARES.includes(otherPiece.square)) return false;
 
       const targetPosition = squareToPosition(otherPiece.square);
 

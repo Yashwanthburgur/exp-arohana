@@ -881,6 +881,44 @@ describe("ANTELOPE swap mechanic", () => {
     const targets = getLegalTargets(a, [a, enemy], context);
     expect(kindsOf(targets, "e0")).toContain("swap");
   });
+
+  it("cannot swap from far away onto a HOME square (d5/e5/f5)", () => {
+    const a = makePiece("ANTELOPE", "WHITE", "a1");
+    const enemyOnHome = makePiece("BULL", "BLACK", "d5");
+    const context = { teamMoveCount: 0, moveLimit: 8 };
+    const targets = getLegalTargets(a, [a, enemyOnHome], context);
+    // d5 is a home candidate, far from a1 — swap must be suppressed
+    expect(targets.filter((t) => t.kind === "swap")).toHaveLength(0);
+    expect(squaresOf(targets)).not.toContain("d5");
+  });
+
+  it("cannot swap onto ANY of the three home candidate squares from afar", () => {
+    const a = makePiece("ANTELOPE", "WHITE", "a1");
+    const enemyOnD = makePiece("BULL", "BLACK", "d5");
+    const enemyOnE = makePiece("BULL", "BLACK", "e5");
+    const enemyOnF = makePiece("BULL", "BLACK", "f5");
+    const context = { teamMoveCount: 0, moveLimit: 8 };
+    const targets = getLegalTargets(
+      a,
+      [a, enemyOnD, enemyOnE, enemyOnF],
+      context,
+    );
+    const swaps = targets.filter((t) => t.kind === "swap");
+    expect(swaps).toHaveLength(0);
+    for (const home of ["d5", "e5", "f5"]) {
+      expect(squaresOf(targets)).not.toContain(home);
+    }
+  });
+
+  it("still captures an ADJACENT enemy that happens to sit on a home square (normal king move)", () => {
+    const a = makePiece("ANTELOPE", "WHITE", "e5");
+    const enemyOnAdjacentHome = makePiece("BULL", "BLACK", "d5");
+    const context = { teamMoveCount: 0, moveLimit: 8 };
+    const targets = getLegalTargets(a, [a, enemyOnAdjacentHome], context);
+    // Physically adjacent — the Antelope may step onto d5 to capture it.
+    expect(kindsOf(targets, "d5")).toContain("capture");
+    expect(kindsOf(targets, "d5")).not.toContain("swap");
+  });
 });
 
 // ────────────────────────────────────────────────────────
