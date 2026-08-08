@@ -1,6 +1,6 @@
 # Arohana-rana — Project and Game Handoff
 
-> Last reviewed from the source tree on 2026-07-25. This is an implementation-oriented handoff: it distinguishes what the code does today from the intended online product.
+> Last reviewed from the source tree on 2026-08-08. This is an implementation-oriented handoff: it distinguishes what the code does today from the intended online product.
 
 ## 1. One-minute orientation
 
@@ -8,11 +8,11 @@
 
 The repository is split into:
 
-| Area | Stack | Role today |
-| --- | --- | --- |
-| `frontend/` | React 19, Vite 8, Tailwind 4 | The playable local/pass-and-play game; contains the authoritative implemented rules. |
-| `backend/` | Java 21, Spring Boot 3.3, JPA, MySQL, Flyway, JWT, STOMP/SockJS | Authentication, player profiles, match records, matchmaking queue, event persistence/broadcast scaffolding. |
-| `documentation.md` | Markdown | This source-of-truth handoff for humans and agents. |
+| Area               | Stack                                                           | Role today                                                                                                  |
+| ------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `frontend/`        | React 19, Vite 8, Tailwind 4                                    | The playable local/pass-and-play game; contains the authoritative implemented rules.                        |
+| `backend/`         | Java 21, Spring Boot 3.3, JPA, MySQL, Flyway, JWT, STOMP/SockJS | Authentication, player profiles, match records, matchmaking queue, event persistence/broadcast scaffolding. |
+| `documentation.md` | Markdown                                                        | This source-of-truth handoff for humans and agents.                                                         |
 
 ## 2. What is playable now
 
@@ -68,7 +68,7 @@ Treat the frontend engine as the current game reference and the backend as integ
 
 Variants:
 
-- **Classic**: Warrior, Gajashva, Elephant, Rhino, Camel, Horse, Unicorn, Donkey, Giraffe, Snake, Bull, Soldier.
+- **Classic**: Warrior, Airavata, Jatayu, Elephant, Rhino, Camel, Horse, Unicorn, Donkey, Giraffe, Snake, Bull, Soldier.
 - **Magical**: Classic plus Sagittarius, Ninja, Dragon, Wolf, Monkey, Antelope, Skunk.
 - **Custom**: selected subset from the full Magical catalog. Empty tier selections make drafting impossible, so the UI must retain at least one available type.
 
@@ -88,43 +88,44 @@ Each side tracks moves independently. On its eighth movement (`MOVE_LIMIT = 8`),
 
 ### 4.4 Movement and captures
 
-`getLegalTargets(piece, pieces, context)` in `frontend/src/engine/moveEngine.js` is the rule router. It returns `{ square, kind }`, where kind is `move`, `capture`, or Antelope-only `swap`. Friendly occupied squares are excluded. Sliding paths stop at blockers; jumping pieces ignore intermediate blockers. A global Skunk filter applies after a piece's individual movement is generated.
+`getLegalTargets(piece, pieces, context)` in `frontend/src/engine/moveEngine.js` is the rule router. It returns `{ square, kind }`, where kind is `move`, `capture`, or Antelope-only `swap`. Friendly occupied squares are excluded. Sliding paths stop at blockers; jumping pieces ignore intermediate blockers. A global Skunk filter applies after a piece's individual movement is generated, then a global dedupe pass drops any duplicate square entries so combo pieces never offer the same square twice.
 
-| Tier | Piece | Material / combo | Implemented movement and special rule |
-| --- | --- | --- | --- |
-| S | Warrior | 9 / ×1 | Unlimited orthogonal + diagonal slide (queen); cannot jump. |
-| S | Sagittarius | 9 / ×1 | Up to 3 squares in any direction without jumping, plus normal Horse leaps. |
-| S | Ninja | 9 / ×1 | 1–3 squares in any direction; may jump over blockers. |
-| S | Gajashva | 9 / ×1 | Elephant's rook slide plus Horse leap. |
-| A | Elephant | 5.5 / ×1 | Unlimited orthogonal slide. |
-| A | Rhino | 5 / ×1 | Camel's diagonal slide plus a one-square king move. |
-| B | Giraffe | 4 / ×1 | Leaps exactly 2 or 3 squares orthogonally. |
-| B | Camel | 4 / ×1 | Unlimited diagonal slide; therefore stays on its starting square colour. |
-| B | Dragon | 4 / ×1 | 3+1 leaper; horizontal coordinate wraps across the `a`/`i` edge. |
-| B | Horse | 3.5 / ×1 | Standard 2+1 knight leap. |
-| B | Unicorn | 3.5 / ×1 | 3+1 knight-like leap. |
-| B | Donkey | 2.5 / ×1 | Horse destination, but an L-shaped route must be clear along at least one of two orthogonal path interpretations. |
-| C | Wolf | 2.5 / ×1 | One-square king movement. It remains in internal state but is not rendered anywhere on the board. |
-| C | Monkey | 2.5 / ×1 | One-square king movement with coordinate wrapping; invalid non-launch-pad rank 0/10 results are filtered. |
-| C | Antelope | 2.5 / ×1 | Normal king movement/capture, plus one long-range swap with any non-adjacent enemy except Wolf. Swap is unavailable at move 7/8 and after `powerUsed`. |
-| C | Skunk | 2.5 / ×1 | One-square king movement. Every Skunk blocks *all* new landings on its eight neighbouring squares. Direct capture of an enemy Skunk remains legal. |
-| D | Snake | 1 / ×4 | One-square diagonal leap. |
-| D | Bull | 1.5 / ×2 | Moves forward or backward one into an empty square; captures directly forward or on either forward diagonal. |
-| D | Soldier | 1 / ×3 | Moves one forward into empty square; captures one forward-diagonal. |
+| Tier | Piece       | Material / combo | Implemented movement and special rule                                                                                                                                                                                                          |
+| ---- | ----------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S    | Warrior     | 9 / ×1           | Unlimited orthogonal + diagonal slide (queen); cannot jump.                                                                                                                                                                                    |
+| S    | Sagittarius | 9 / ×1           | Up to 3 squares in any direction without jumping, plus normal Horse leaps.                                                                                                                                                                     |
+| S    | Ninja       | 9 / ×1           | 1–3 squares in any direction; may jump over blockers.                                                                                                                                                                                          |
+| S    | Airavata    | 9 / ×1           | Elephant's rook slide plus Horse leap (renamed from Gajashva).                                                                                                                                                                                 |
+| S    | Jatayu      | 8 / ×1           | Camel's diagonal slide (no jump) plus Horse leap. Can change square colour via the leap.                                                                                                                                                       |
+| A    | Elephant    | 5.5 / ×1         | Unlimited orthogonal slide.                                                                                                                                                                                                                    |
+| A    | Rhino       | 5 / ×1           | Camel's diagonal slide plus a one-square king move.                                                                                                                                                                                            |
+| B    | Giraffe     | 4 / ×1           | Leaps exactly 2 or 3 squares orthogonally.                                                                                                                                                                                                     |
+| B    | Camel       | 4 / ×1           | Unlimited diagonal slide; therefore stays on its starting square colour.                                                                                                                                                                       |
+| B    | Dragon      | 4 / ×1           | 3+1 leaper; horizontal coordinate wraps across the `a`/`i` edge.                                                                                                                                                                               |
+| B    | Horse       | 3.5 / ×1         | Standard 2+1 knight leap.                                                                                                                                                                                                                      |
+| B    | Unicorn     | 3.5 / ×1         | 3+1 knight-like leap.                                                                                                                                                                                                                          |
+| B    | Donkey      | 2.5 / ×1         | Horse destination, but an L-shaped route must be clear along at least one of two orthogonal path interpretations.                                                                                                                              |
+| C    | Wolf        | 2.5 / ×1         | One-square king movement. It remains in internal state but is not rendered anywhere on the board.                                                                                                                                              |
+| C    | Monkey      | 2.5 / ×1         | One-square king movement with horizontal file wrapping across the `a`/`i` edge. Ranks never wrap: moves leaving ranks 1–9 or the d/e/f launch pads are filtered (a Monkey on `e0` cannot teleport to `e10`).                                   |
+| C    | Antelope    | 2.5 / ×1         | Normal king movement/capture, plus one long-range swap with any non-adjacent enemy except Wolf. Swap is unavailable at moves 7/8 (final two of the eight-move cycle) and after `powerUsed`. A swap can never land on a home square (d5/e5/f5). |
+| C    | Skunk       | 2.5 / ×1         | One-square king movement. Every Skunk blocks _all_ new landings on its eight neighbouring squares. Direct capture of an enemy Skunk remains legal.                                                                                             |
+| D    | Snake       | 1 / ×4           | One-square diagonal leap.                                                                                                                                                                                                                      |
+| D    | Bull        | 1.5 / ×2         | Moves forward or backward one into an empty square; captures directly forward or on either forward diagonal.                                                                                                                                   |
+| D    | Soldier     | 1 / ×3           | Moves one forward into empty square; captures one forward-diagonal.                                                                                                                                                                            |
 
-Antelope swaps exchange the Antelope's and target enemy's squares, set `powerUsed: true`, and are logged. Wolf invisibility is a presentation rule in `Board.jsx`; its state still blocks squares, can move, and can be captured through a highlighted target. Antelope explicitly cannot identify or swap a Wolf.
+Antelope swaps exchange the Antelope's and target enemy's squares, set `powerUsed: true`, and are logged. Because a swap can never target a home square (d5/e5/f5), home defence/reclaim requires physically moving adjacent to the home rather than teleporting onto it. Wolf invisibility is a presentation rule in `Board.jsx`; its state still blocks squares, can move, and can be captured through a highlighted target. Antelope explicitly cannot identify or swap a Wolf. Every piece's generated targets pass through a global dedupe filter, so no square is ever offered twice (relevant for combo pieces such as Rhino and Jatayu).
 
 ### 4.5 Homes and scoring
 
 The target is **20**. Point values in `scoreEngine.js` are integers (the previous decimal scoring system multiplied by two):
 
-| Event | Score change |
-| --- | --- |
-| Hold/claim your own home successfully | claimant +2 |
-| Claim opponent's home successfully | claimant +3; home owner −1 |
-| Soldier reaches opponent's back rank | +2 |
-| Opponent has no active pieces (`ALL_OUT`) | +4 |
-| Opponent has no legal move | +4 |
+| Event                                     | Score change               |
+| ----------------------------------------- | -------------------------- |
+| Hold/claim your own home successfully     | claimant +2                |
+| Claim opponent's home successfully        | claimant +3; home owner −1 |
+| Soldier reaches opponent's back rank      | +2                         |
+| Opponent has no active pieces (`ALL_OUT`) | +4                         |
+| Opponent has no legal move                | +4                         |
 
 Landing on either home creates a **pending claim**, not immediate points. The defender gets exactly its next move to move a piece onto that claimed square. If it does, the original claiming piece is removed from the board and returned to its owner's queue; the claim is cancelled. If it does not, the score is applied, the locked claimant returns to its queue, and the relevant home is relocated to a vacant candidate square. Reaching the target during resolution ends the game before further side effects. The code checks White first if a generic simultaneous score calculation ever occurs; normal home resolution should be one-sided.
 
@@ -168,25 +169,25 @@ The separate engine files should remain mostly pure; hooks hold reusable React s
 
 ### Important frontend directories
 
-| Path | Responsibility |
-| --- | --- |
-| `src/engine/moveEngine.js` | Legal-target generation for every type and global Skunk restriction. |
-| `src/engine/gameEngine.js` | Basic immutable move/capture application and colour switching. |
-| `src/engine/homeClaimEngine.js` | Pure delayed-home claim construction/resolution. |
-| `src/engine/scoreEngine.js` | Target, point constants, pure score helpers. |
-| `src/engine/timerEngine.js` | Clock/reserve state, per-second tick, formatting. |
-| `src/engine/seizureEngine.js` | Normal/seized action descriptors and timeout transition. |
-| `src/engine/matchLogEngine.js` | Structured event construction and text/JSON export; no state mutation. |
-| `src/engine/pieceCatalog.js` | Type metadata, display names, tiers, score values, images. |
-| `src/hooks/useDraftSystem.js` | Draft rolls, queue order, material totals, queue return/reset. |
-| `src/hooks/useHomeSystem.js` | Random home assignment, claim logging, queue-return and relocation orchestration. |
-| `src/hooks/useInitialSupportSystem.js` | Reusable support-placement flow (note: `App.jsx` also retains related local state/logic). |
-| `src/hooks/useSpawnSystem.js` | Spawn-oriented reusable logic. |
-| `src/hooks/useTimerSeizure.js` | Reusable timer/seizure implementation; `App.jsx` currently keeps equivalent state/logic too. |
-| `src/components/board/` | Board layout, home markers, legal-move highlights; Wolf concealment. |
-| `src/components/panels/` | Player sidebars, variant/timer setup, log, winner and promotion overlays. |
-| `src/screens/` | Authentication, menu, demo matchmaker, and history pages. |
-| `src/utils/apiClient.js` | HTTP wrapper and typed-ish API groupings. |
+| Path                                   | Responsibility                                                                               |
+| -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `src/engine/moveEngine.js`             | Legal-target generation for every type and global Skunk restriction.                         |
+| `src/engine/gameEngine.js`             | Basic immutable move/capture application and colour switching.                               |
+| `src/engine/homeClaimEngine.js`        | Pure delayed-home claim construction/resolution.                                             |
+| `src/engine/scoreEngine.js`            | Target, point constants, pure score helpers.                                                 |
+| `src/engine/timerEngine.js`            | Clock/reserve state, per-second tick, formatting.                                            |
+| `src/engine/seizureEngine.js`          | Normal/seized action descriptors and timeout transition.                                     |
+| `src/engine/matchLogEngine.js`         | Structured event construction and text/JSON export; no state mutation.                       |
+| `src/engine/pieceCatalog.js`           | Type metadata, display names, tiers, score values, images.                                   |
+| `src/hooks/useDraftSystem.js`          | Draft rolls, queue order, material totals, queue return/reset.                               |
+| `src/hooks/useHomeSystem.js`           | Random home assignment, claim logging, queue-return and relocation orchestration.            |
+| `src/hooks/useInitialSupportSystem.js` | Reusable support-placement flow (note: `App.jsx` also retains related local state/logic).    |
+| `src/hooks/useSpawnSystem.js`          | Spawn-oriented reusable logic.                                                               |
+| `src/hooks/useTimerSeizure.js`         | Reusable timer/seizure implementation; `App.jsx` currently keeps equivalent state/logic too. |
+| `src/components/board/`                | Board layout, home markers, legal-move highlights; Wolf concealment.                         |
+| `src/components/panels/`               | Player sidebars, variant/timer setup, log, winner and promotion overlays.                    |
+| `src/screens/`                         | Authentication, menu, demo matchmaker, and history pages.                                    |
+| `src/utils/apiClient.js`               | HTTP wrapper and typed-ish API groupings.                                                    |
 
 ### UI behavior and assets
 
@@ -220,20 +221,20 @@ Main entities/tables:
 
 ### HTTP endpoints
 
-| Endpoint | Auth | Current behavior |
-| --- | --- | --- |
-| `GET /health` | No | Health response. |
-| `POST /api/auth/register` | No | Validate username/display/email/password; creates Player + Identity; returns JWT and player summary, HTTP 201. |
-| `POST /api/auth/login` | No | Validates email/password; returns JWT and player summary. |
-| `GET /api/players/me` | JWT | Current player's summary. |
-| `GET /api/players/{username}` | JWT (due global rule) | Public-profile-style player summary. |
-| `POST /api/matches` | JWT | Creates a `DRAFTING` match. Requires opponent UUID and variant; stores timer and optional custom types. |
-| `GET /api/matches/{id}` | JWT | Returns match summary; does not currently enforce player membership. |
-| `GET /api/matches/my` | JWT | Returns matches whose white or black player ID is the caller. |
-| `GET /api/matches/{id}/events` | JWT | Returns ordered stored events; does not currently enforce player membership. |
-| `POST /api/matchmaking/queue` | JWT | Pairs same-variant queued players whose rating lies within ±200; returns match or 202 `{ status: "QUEUED" }`. |
-| `DELETE /api/matchmaking/queue` | JWT | Leaves queue. |
-| `GET /api/matchmaking/queue/status` | JWT | Returns `{ inQueue }`. |
+| Endpoint                            | Auth                  | Current behavior                                                                                               |
+| ----------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET /health`                       | No                    | Health response.                                                                                               |
+| `POST /api/auth/register`           | No                    | Validate username/display/email/password; creates Player + Identity; returns JWT and player summary, HTTP 201. |
+| `POST /api/auth/login`              | No                    | Validates email/password; returns JWT and player summary.                                                      |
+| `GET /api/players/me`               | JWT                   | Current player's summary.                                                                                      |
+| `GET /api/players/{username}`       | JWT (due global rule) | Public-profile-style player summary.                                                                           |
+| `POST /api/matches`                 | JWT                   | Creates a `DRAFTING` match. Requires opponent UUID and variant; stores timer and optional custom types.        |
+| `GET /api/matches/{id}`             | JWT                   | Returns match summary; does not currently enforce player membership.                                           |
+| `GET /api/matches/my`               | JWT                   | Returns matches whose white or black player ID is the caller.                                                  |
+| `GET /api/matches/{id}/events`      | JWT                   | Returns ordered stored events; does not currently enforce player membership.                                   |
+| `POST /api/matchmaking/queue`       | JWT                   | Pairs same-variant queued players whose rating lies within ±200; returns match or 202 `{ status: "QUEUED" }`.  |
+| `DELETE /api/matchmaking/queue`     | JWT                   | Leaves queue.                                                                                                  |
+| `GET /api/matchmaking/queue/status` | JWT                   | Returns `{ inQueue }`.                                                                                         |
 
 JWTs are stateless Bearer tokens (default 24-hour lifetime). Passwords are BCrypt-hashed. CORS defaults to Vite/React localhost origins.
 
@@ -252,7 +253,7 @@ npm run build
 npm run dev
 ```
 
-Tests currently cover key catalog/config, draft, move-engine, and variant-panel behavior. From `backend/`:
+Tests currently cover key catalog/config, draft, move-engine, coordinates, and variant-panel behavior. The movement suite (`moveEngine.test.js`, 95 tests) performs a full piece audit: every piece type is swept across every playable square to assert that no target falls outside the board (ranks 0–10, files a–i), duplicates the piece's own square, or repeats; sliding pieces are verified against blockers, jumpers against board limits, Donkey partial-block L-paths, Dragon/Monkey horizontal wrapping (Monkey never wraps ranks), Skunk aura union + direct capture, and Antelope swap gating (non-adjacent, not Wolf, not after `powerUsed`, not on moves 7/8, never onto a home square). `coordinates.test.js` (15 tests) pins the playable-square geometry and launch-pad validity. From `backend/`:
 
 ```powershell
 mvn test
@@ -293,4 +294,3 @@ Start with these files in this order:
 6. `frontend/src/utils/apiClient.js` and `screens/MatchmakerScreen.jsx` — current frontend/backend boundary and the deliberate demo gap.
 7. `backend/src/main/java/com/arohana/match/`, `matchmaking/`, and `shared/security/` — online foundation.
 8. `backend/src/main/resources/db/migration/V1__init.sql` — persistent data contract.
-
